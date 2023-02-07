@@ -20,10 +20,14 @@ main=function(start_date, stop_date=NULL,
      lw_factor = 1, 
      sed_temp_mean = c(11.39072901, 14.85279613), 
      results_dir_number = 1,
-     nml_file_name = "glm3.nml"){
+     nml_file_name = "glm3.nml", 
+     save_NOAA_weather=FALSE){
   
   if (!dir.exists("FINAL_RESULTS")){
     dir.create("FINAL_RESULTS")
+  }
+  if (!dir.exists("FINAL_RESULTS/Weather")){
+    dir.create("FINAL_RESULTS/Weather")
   }
   final_results_dir = "FINAL_RESULTS"
   
@@ -161,6 +165,11 @@ main=function(start_date, stop_date=NULL,
   # write to a place where I will find files
   write.csv(my_results$sim_aves_wide, file.path(final_results_dir,
             paste0("results_", start_date, ".csv")))
+  if (save_NOAA_weather){
+    noaa_met_GLM$start_date = start_date
+    write.csv(noaa_met_GLM, file.path(final_results_dir, 
+                                      paste0("Weather/NOAA_weather", start_date, ".csv")))
+  }
   # delete the result files
   unlink(grep("*Results", list.files(), value = TRUE), recursive = TRUE)
 }
