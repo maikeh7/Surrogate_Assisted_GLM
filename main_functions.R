@@ -5,14 +5,17 @@ library(lubridate)
 library(GLM3r)
 library(glmtools)
 library(arrow)
+library(reshape2)
 
+source("aux_functions.R")
+source("get_GLM_sims.R")
 ###################################################################################
 # main() will loop over 31 ensemble members and for each ensemble will run GLM:
 # extract met file, extract inflow/outflow files
 # create direcotry for sim, put input files in created dir called 'inputs'
 # also includes a function called 'update_nml' that will update the nml file for
 # each NOAA ensemble member
-###################################################################################
+
 main=function(start_date, stop_date=NULL,
      Kw = 0.87, 
      coeff_mix_hyp = 0.6458725, 
@@ -20,24 +23,25 @@ main=function(start_date, stop_date=NULL,
      lw_factor = 1, 
      sed_temp_mean = c(11.39072901, 14.85279613), 
      results_dir_number = 1,
-     nml_file_name = "glm3.nml", 
-     save_NOAA_weather=FALSE){
+     nml_file_name = "glm3.nml"){
   
   if (!dir.exists("FINAL_RESULTS")){
     dir.create("FINAL_RESULTS")
   }
-  if (!dir.exists("FINAL_RESULTS/Weather")){
-    dir.create("FINAL_RESULTS/Weather")
-  }
   final_results_dir = "FINAL_RESULTS"
   
   # get inputs
+  print("working on day")
+  print(start_date)
   inputs_param_list = get_inputs(start_date)
+  print(inputs_param_list)
+  print("made it to main")
+  # will be null if there are too many missing observations for start_date_hindcast from which to 
+  # derive initial values. Day will be skipped.
   if (is.null(inputs_param_list)){
-    
-    return()
+    print("day is null")
+    return(NA)
   }
-  
   # all ensemble members
   ensemble_members = unique(inputs_param_list$noaa_met_GLM$ensemble)
   
@@ -71,7 +75,8 @@ main=function(start_date, stop_date=NULL,
   
 
   # loop over ensemble members
-  for (i in ensemble_members){
+#  for (i in ensemble_members){
+  for (i in 1:31){
     # extract current NOAA met data
     curr_met_file = dplyr::filter(noaa_met_GLM, ensemble == i)
     curr_met_file$ensemble = NULL
@@ -116,8 +121,8 @@ main=function(start_date, stop_date=NULL,
     mystop = paste0(curr_met_file$time[nrow(curr_met_file)], ":00")
     nml_file$time$start = mystart
     nml_file$time$stop = mystop
-    # save 24 hours of output each day--then we will average over them later?
-    nml_file$output$nsave = 24 # not sure if we want to save hourly output or just once per day??
+    # This saves one output per day at 00UTC!! This is what we want
+    nml_file$output$nsave = 24 
     
     # update names of met/inflow/outflow...altho can leave out in/outflow b/c they never change....
     #nml_input_dir = file.path(paste0("GLM_sim_", i), "inputs")
@@ -144,8 +149,6 @@ main=function(start_date, stop_date=NULL,
     # want only 10 salt values (set to 0)
     nml_file$init_profiles$the_sals = rep(0, 10)
     nml_file$inflow$num_inflows = 1
-    # might want to save every hour and then average?
-    # nml_file$output$nsave = 24
     
     # write changes to nml file
     write_nml(nml_file, file.path(sim_dir_i, "glm3.nml"))
@@ -157,21 +160,40 @@ main=function(start_date, stop_date=NULL,
     print(paste("GLM simulation", i, "is complete."))
 
   }
+  
   #process output from GLM, collect data and params in dataframe, delete extra folders
+  print(paste("main_dir is ", main_dir))
   my_results = get_GLM_sims(curr_results_dir = main_dir, hourly = TRUE, 
                             coeff_list = inputs_param_list$coeff_list, 
                             initial_temps = inputs_param_list$initial_temps, 
                             start_date = start_date)
+
   # write to a place where I will find files
-  write.csv(my_results$sim_aves_wide, file.path(final_results_dir,
+  write.csv(my_results$sim_wide, file.path(final_results_dir,
             paste0("results_", start_date, ".csv")))
-  if (save_NOAA_weather){
-    noaa_met_GLM$start_date = start_date
-    write.csv(noaa_met_GLM, file.path(final_results_dir, 
-                                      paste0("Weather/NOAA_weather", start_date, ".csv")))
-  }
+
   # delete the result files
   unlink(grep("*Results", list.files(), value = TRUE), recursive = TRUE)
 }
 
+#biasdat = read.csv("bias_dat_forHetGP.csv")
+#biasdat$date = paste(biasdat$YEAR, biasdat$MONTH, biasdat$DAY, sep = "-")
+#biasdat$date = as.POSIXct(biasdat$date, tz = "UTC")
+# including 7 day spinup, start date should be 2020-10-02 or later
+#biasdat = filter(biasdat, date > as.POSIXct("2020-10-02", tz = "UTC"))
+#all_dates = unique(biasdat$date)
 
+#actual_dates = all_dates[1:97]
+#dates_char = as.character(actual_dates)
+df=make_ymd()
+df$YEAR = 2022
+mydates = paste(df$YEAR, df$MONTH, df$DAY, sep = "-")
+mydates = as.character(as.Date(mydates, tz = "UTC"))
+dates_char = mydates[!is.na(mydates)]
+dates_char = "2021-10-03"
+#main(start_date = "2022-02-20")
+#main(start_date = "2022-02-21")
+#for (i in 1:2){
+for(i in 1:length(dates_char)){
+  main(start_date = dates_char[i])
+}

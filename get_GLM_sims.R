@@ -1,7 +1,3 @@
-library(GLM3r)
-library(glmtools)
-library(reshape2)
-library(dplyr)
 
 # you need to be in this dir
 # setwd("C:/Users/Maike/Box Sync/DEEP_LEARNING/SurrogateModeling/Important_code/GLM_related/GLM/NOAA_forecast_GLM")
@@ -15,30 +11,6 @@ make_ymd = function(){
   ymd = data.frame(MONTH = MONTH, DAY = DAY, DOY = DOY)
 }
 
-
-# need this to handle errors due to glmtools not being able to interpolate or something
-check_GLM_output <- function(nml_file, output_file){
-  tryCatch(
-    # This is what I want to do...
-    {
-      surface_temp = glmtools::get_var(file = output_file,
-                                       var_name = "temp",
-                                       reference = "surface",
-                                       z_out = nml_file$init_profiles$the_depths)
-      return(surface_temp)
-    },
-    # ... but if an error occurs, tell me what happened: 
-    error=function(error_message) {
-      message("glmtools is being dumb and doesn't want to interpolate temps to depths! Skipping this 
-              ensemble member.")
-
-      return(NA)
-    }
-  )
-}
-
-
-#curr_results_dir = "Results1"
 # if hourly = TRUE, then .nml file is saving every hour, so we average over hour
 # if hourly = FALSE, then .nml specifies saving one hour per day, so no averaging
 get_GLM_sims = function(curr_results_dir, hourly = TRUE, coeff_list, initial_temps, start_date = NULL){
@@ -56,20 +28,15 @@ get_GLM_sims = function(curr_results_dir, hourly = TRUE, coeff_list, initial_tem
   }
   ymd = make_ymd()
   df = data.frame()
-  for (i in 1:30){
+  for (i in 1:31){
+ #for (i in 1:2){
     GLM_sim_dir = paste0("GLM_sim_", i)
-    output_file = file.path(curr_results_dir, GLM_sim_dir, "output/output.nc", sep = "")
-    nml_file = read_nml(nml_file = file.path(curr_results_dir, GLM_sim_dir, "glm3.nml", sep = ""))
-    
-    surface_temp = check_GLM_output(nml_file, output_file)
-    if (!is.data.frame(surface_temp)){
-      next
-    }else{
-    
-    # surface_temp = glmtools::get_var(file = output_file,
-    #                        var_name = "temp",
-    #                        reference = "surface",
-    #                        z_out = nml_file$init_profiles$the_depths)
+    output_file = paste0(file.path(curr_results_dir, GLM_sim_dir), "/output/output.nc", sep = "")
+    nml_file = read_nml(nml_file = paste0(file.path(curr_results_dir, GLM_sim_dir), "/glm3.nml"))
+    surface_temp = glmtools::get_var(file = output_file,
+                           var_name = "temp",
+                           reference = "surface",
+                           z_out = nml_file$init_profiles$the_depths)
     surface_melt = reshape2::melt(surface_temp, id.vars = "DateTime")
     colnames(surface_melt)[2:3] = c("depth_int", "Temp_C")
     surface_melt$ensemble_number = i
@@ -90,28 +57,29 @@ get_GLM_sims = function(curr_results_dir, hourly = TRUE, coeff_list, initial_tem
     surface_melt = dplyr::right_join(ymd, surface_melt, by = c("MONTH", "DAY"))
   
     df = rbind(df, surface_melt)
-    }
   }
-
-  if (hourly == TRUE){
-    sim_aves = df %>% group_by(ensemble_number, YEAR, MONTH, DAY, depth_int) %>%
+  
+  # we won't really ever be averaging over hour, so the 'summarise' statement 
+  # will not do anything . 
+  if (simple == TRUE){
+    sims = df %>% group_by(ensemble_number, YEAR, MONTH, DAY, depth_int) %>%
       summarise(mean_Temp_C = mean(Temp_C))
-    sim_aves = dplyr::right_join(ymd, sim_aves, by = c("MONTH", "DAY"))
-    sim_aves_wide = sim_aves #%>%
+    sims = dplyr::right_join(ymd, sims, by = c("MONTH", "DAY"))
+    sims_wide = sims #%>%
     #tidyr::pivot_wider(names_from = ensemble_number, values_from = mean_Temp_C) 
     #colnames(sim_aves_wide)[6:36] = paste0("ensemble_member_",1:31)
     
-    sim_aves_wide$Kw = Kw
-    sim_aves_wide$coeff_mix_hyp = coeff_mix_hyp
-    sim_aves_wide$sw_factor = sw_factor
-    sim_aves_wide$lw_factor = lw_factor
-    sim_aves_wide$sed_temp_mean_1 = sed_temp_mean[1]
-    sim_aves_wide$sed_temp_mean_2 = sed_temp_mean[2]
-    init_sim_wide = data.frame(matrix(rep(initial_temps, each = nrow(sim_aves_wide)), 
+    sims_wide$Kw = Kw
+    sims_wide$coeff_mix_hyp = coeff_mix_hyp
+    sims_wide$sw_factor = sw_factor
+    sims_wide$lw_factor = lw_factor
+    sims_wide$sed_temp_mean_1 = sed_temp_mean[1]
+    sims_wide$sed_temp_mean_2 = sed_temp_mean[2]
+    init_sim_wide = data.frame(matrix(rep(initial_temps, each = nrow(sims_wide)), 
                                      ncol = length(initial_temps)))
     colnames(init_sim_wide) = paste0("init",0:9)
-    sim_aves_wide = cbind(sim_aves_wide, init_sim_wide)
-    sim_aves_wide$start_date = start_date
+    sims_wide = cbind(sims_wide, init_sim_wide)
+    sims_wide$start_date = start_date
     # 
    
     df_wide = df #%>% tidyr::pivot_wider(names_from = ensemble_number, values_from = Temp_C) 
@@ -129,7 +97,7 @@ get_GLM_sims = function(curr_results_dir, hourly = TRUE, coeff_list, initial_tem
     df_wide = cbind(df_wide, init_df_wide)
     df_wide$start_date = start_date
     
-    return(list(df_wide = df_wide, sim_aves_wide = sim_aves_wide))
+    return(list(df_wide = df_wide, sims_wide = sims_wide))
   }else{
     
     df_wide = df# %>% tidyr::pivot_wider(names_from = ensemble_number, values_from = Temp_C) 
@@ -148,6 +116,3 @@ get_GLM_sims = function(curr_results_dir, hourly = TRUE, coeff_list, initial_tem
     return(list(df = df, df_wide = df_wide))
   }
 }
-
-
-
