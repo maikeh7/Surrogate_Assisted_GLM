@@ -5,8 +5,16 @@ library(lubridate)
 # Here I construct an observed dataset for each horizon, then merge w/ GLM surrogate and calculate bias
 # see below for how to get observed data 
 obs_data = read.csv("DATA/Bias_dataset/Observed_data_2018_2022.csv")
-head(obs_data)
 obs_data$X = NULL
+
+# filter data so observed data only includes up until 2022-12-31 (earlier dates like 2018 won't
+# matter b/c they are filtered out later, but I don't want dates the surrogate was NOT trained on to 
+# be in the observed data
+# start_train = as.Date("2020-10-03")
+end_train = as.Date("2022-12-31")
+obs_data = dplyr::filter(obs_data, datetime <= end_train)
+
+
 # file path to GLM simulations
 mypath = "DATA/GLM_sims"
 all_files = file.path(mypath, list.files(mypath) )
@@ -20,7 +28,7 @@ mydate_2 = gsub(".+([0-9]{4}-[0-9]{1,2}-[0-9]{1,2}).+", "\\1", all_files)
 print(head(mydate_2))
 # these are GLM surrogate preds for all training data, variance adjusted via stochastic kriging
 surrogate_preds = readRDS("SVecchia/Vecchia_results/GLM_surrogate_vecchia.Rds")
-
+surrogate_preds$YEAR = 2020
 # go thru all horizons and all dates in training data
 # bias will be OBSERVED - SURROGATE
 # there may be duplicate bias for depth/DOY combos but that is fine
@@ -39,7 +47,7 @@ make_bias_horizon_datasets = function(horizons=1:30, surrogate_preds, train_date
       end_date = start_date + lubridate::days(horizons[h])
       
       # filter so the dataset only contains the date (end date) , temperature, depth
-      temp_file = dplyr::filter(obs_data, datetime == end_date) %>% dplyr::select(datetime, temp_obs, depth_int)
+      temp_file = dplyr::filter(obs_data, datetime == end_date) %>% dplyr::select(datetime, temp_obs, depth_int, YEAR)
       if (nrow(temp_file)==0){
         next
       }
@@ -60,18 +68,17 @@ make_bias_horizon_datasets = function(horizons=1:30, surrogate_preds, train_date
   # Mean is mean of y_hat, GP surrogate for GLM
   newdf$bias = newdf$temp_obs - newdf$Mean
   # Let's save and fit with another script
-  write.csv(newdf, "DATA/Bias_dataset/Bias_dataset_train_Svecchia.csv")
+  write.csv(newdf, "DATA/Bias_dataset/Bias_dataset_train_Svecchia_withYear.csv")
   
 }
 make_bias_horizon_datasets(surrogate_preds = surrogate_preds, train_dates = mydate_2,
  obs_data = obs_data)
  print("done")
 # this is how I constructed observed data
-# this is the observed data
+# this is the observed data NOTE THAT IT IS 00UTC--NOT AVERAGED!!
 #ymd = make_ymd()
 #lake_temps <- data.table::fread("https://s3.flare-forecast.org/targets/fcre_v2/fcre/fcre-targets-insitu.csv")
 #lake_temps = dplyr::filter(lake_temps, variable == "temperature")
-#lake_temps = filter(lake_temps, datetime > "2021-12-31")
 #lake_temps = filter(lake_temps, depth %in% 0:9)
 #newdate = strsplit(as.character(lake_temps$datetime), "-")
 #head(newdateDF)
@@ -89,13 +96,3 @@ make_bias_horizon_datasets(surrogate_preds = surrogate_preds, train_dates = myda
 #colnames(lake_temps)[2] = "depth_int"
 #colnames(lake_temps)[3] = "temp_obs"
 #lake_temps = dplyr::select(lake_temps, YEAR, MONTH, DAY, depth_int, temp_obs, DOY , datetime)
-
-#head(biasdat)
-#biasdat = read.csv("C:/Users/Maike/Box Sync/DEEP_LEARNING/SurrogateModeling/Data/bias_dat_forHetGP.csv")
-#biasdat$X.1=NULL
-#biasdat$X=NULL
-#biasdat$datetime = paste(biasdat$YEAR, biasdat$MONTH, biasdat$DAY, sep = "-")
-#biasdat$datetime = as.Date(biasdat$date, tz = "UTC")
-#biasdat = dplyr::select(biasdat, YEAR, MONTH, DAY, depth_int, temp_obs, DOY, datetime)
-#alldat = rbind(biasdat, lake_temps)
-#write.csv(alldat, "Observed_data_2018_2022.csv")

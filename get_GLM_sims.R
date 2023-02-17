@@ -61,7 +61,7 @@ get_GLM_sims = function(curr_results_dir, hourly = TRUE, coeff_list, initial_tem
   
   # we won't really ever be averaging over hour, so the 'summarise' statement 
   # will not do anything . 
-  if (simple == TRUE){
+  if (hourly == TRUE){
     sims = df %>% group_by(ensemble_number, YEAR, MONTH, DAY, depth_int) %>%
       summarise(mean_Temp_C = mean(Temp_C))
     sims = dplyr::right_join(ymd, sims, by = c("MONTH", "DAY"))
