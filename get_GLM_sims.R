@@ -11,9 +11,9 @@ make_ymd = function(){
   ymd = data.frame(MONTH = MONTH, DAY = DAY, DOY = DOY)
 }
 
-# if hourly = TRUE, then .nml file is saving every hour, so we average over hour
-# if hourly = FALSE, then .nml specifies saving one hour per day, so no averaging
-get_GLM_sims = function(curr_results_dir, hourly = TRUE, coeff_list, initial_temps, start_date = NULL){
+# nsave should always be set to 24--> save one output of GLM at 00UTC. If it is NOT set to 24, 
+# program will terminate with an error message
+get_GLM_sims = function(curr_results_dir, nsave = 24, coeff_list, initial_temps, start_date = NULL){
   Kw = coeff_list$Kw
   coeff_mix_hyp = coeff_list$coeff_mix_hyp
   sw_factor = coeff_list$sw_factor
@@ -21,11 +21,6 @@ get_GLM_sims = function(curr_results_dir, hourly = TRUE, coeff_list, initial_tem
   sed_temp_mean = coeff_list$sed_temp_mean
  # initial_temps = inputs_param_list$initial_temps
   
- # initial_temps = initial_temps not sure how to work this in yet
-  
-  if (hourly){
-    print("hourly simulations--will average over hour")
-  }
   ymd = make_ymd()
   df = data.frame()
   for (i in 1:31){
@@ -59,11 +54,12 @@ get_GLM_sims = function(curr_results_dir, hourly = TRUE, coeff_list, initial_tem
     df = rbind(df, surface_melt)
   }
   
-  # we won't really ever be averaging over hour, so the 'summarise' statement 
-  # will not do anything . 
-  if (hourly == TRUE){
+  # nsave == 24 means GLM will ONLY SAVE one output for every 24 hours, so 00UTC
+  # this summarise statement for averaging will not change the data--it's just for formatting
+  # you should not be running GLM with nsave == 1 
+  if (nsave == 24){
     sims = df %>% group_by(ensemble_number, YEAR, MONTH, DAY, depth_int) %>%
-      summarise(mean_Temp_C = mean(Temp_C))
+      summarise(Temp_C_00UTC = mean(Temp_C))
     sims = dplyr::right_join(ymd, sims, by = c("MONTH", "DAY"))
     sims_wide = sims #%>%
     #tidyr::pivot_wider(names_from = ensemble_number, values_from = mean_Temp_C) 
@@ -99,20 +95,23 @@ get_GLM_sims = function(curr_results_dir, hourly = TRUE, coeff_list, initial_tem
     
     return(list(df_wide = df_wide, sims_wide = sims_wide))
   }else{
-    
-    df_wide = df# %>% tidyr::pivot_wider(names_from = ensemble_number, values_from = Temp_C) 
-    #colnames(df_wide)[7:37] = paste0("ensemble_member_",1:31)
-    df_wide$Kw = Kw
-    df_wide$coeff_mix_hyp = coeff_mix_hyp
-    df_wide$sw_factor = sw_factor
-    df_wide$lw_factor = lw_factor
-    df_wide$sed_temp_mean_1 = sed_temp_mean[1]
-    df_wide$sed_temp_mean_2 = sed_temp_mean[2]
-    init_df_wide = data.frame(matrix(rep(initial_temps, each = nrow(df_wide)), 
-                                     ncol = length(initial_temps)))
-    colnames(init_df_wide) = paste0("init",0:9)
-    df_wide = cbind(df_wide, init_df_wide)
-    df_wide$start_date = start_date
-    return(list(df = df, df_wide = df_wide))
-  }
+   stop("You should not be running GLM with anything other than nsave=24 for forecasting. Please check your nml file!")   
+ }
 }
+
+# JUNK JUNK JUNK
+#this was in the else statement, but I don't think I'd ever use it...
+  #  df_wide = df
+   # df_wide$Kw = Kw
+   # df_wide$coeff_mix_hyp = coeff_mix_hyp
+   # df_wide$sw_factor = sw_factor
+   # df_wide$lw_factor = lw_factor
+   # df_wide$sed_temp_mean_1 = sed_temp_mean[1]
+   # df_wide$sed_temp_mean_2 = sed_temp_mean[2]
+   # init_df_wide = data.frame(matrix(rep(initial_temps, each = nrow(df_wide)), 
+    #                                 ncol = length(initial_temps)))
+    #colnames(init_df_wide) = paste0("init",0:9)
+    #df_wide = cbind(df_wide, init_df_wide)
+    #df_wide$start_date = start_date
+    #return(list(df = df, df_wide = df_wide))
+  #}

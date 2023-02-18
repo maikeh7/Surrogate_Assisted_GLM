@@ -121,7 +121,8 @@ main=function(start_date, stop_date=NULL,
     mystop = paste0(curr_met_file$time[nrow(curr_met_file)], ":00")
     nml_file$time$start = mystart
     nml_file$time$stop = mystop
-    # This saves one output per day at 00UTC!! This is what we want
+    # This saves one output per day at 00UTC!! This is what we want!! 
+    # it should not be anything other than 24
     nml_file$output$nsave = 24 
     
     # update names of met/inflow/outflow...altho can leave out in/outflow b/c they never change....
@@ -162,8 +163,10 @@ main=function(start_date, stop_date=NULL,
   }
   
   #process output from GLM, collect data and params in dataframe, delete extra folders
+  # Note that nsave must be equal to 24 (saving one GLM output every 24 hours, at 00UTC.
+  # if nsave != 24, get_GLM_sims() will stop on error
   print(paste("main_dir is ", main_dir))
-  my_results = get_GLM_sims(curr_results_dir = main_dir, hourly = TRUE, 
+  my_results = get_GLM_sims(curr_results_dir = main_dir, nsave = 24, 
                             coeff_list = inputs_param_list$coeff_list, 
                             initial_temps = inputs_param_list$initial_temps, 
                             start_date = start_date)
