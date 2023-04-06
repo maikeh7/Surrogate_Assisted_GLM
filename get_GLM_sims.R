@@ -1,6 +1,4 @@
 
-# you need to be in this dir
-# setwd("C:/Users/Maike/Box Sync/DEEP_LEARNING/SurrogateModeling/Important_code/GLM_related/GLM/NOAA_forecast_GLM")
 
 # function to make MONTH/DAY/DOY dataframe for merging w/ GLM sims
 make_ymd = function(){
@@ -23,8 +21,8 @@ get_GLM_sims = function(curr_results_dir, nsave = 24, coeff_list, initial_temps,
   
   ymd = make_ymd()
   df = data.frame()
+  # only use the 30 ensemble members
   for (i in 1:31){
- #for (i in 1:2){
     GLM_sim_dir = paste0("GLM_sim_", i)
     output_file = paste0(file.path(curr_results_dir, GLM_sim_dir), "/output/output.nc", sep = "")
     nml_file = read_nml(nml_file = paste0(file.path(curr_results_dir, GLM_sim_dir), "/glm3.nml"))
@@ -92,7 +90,7 @@ get_GLM_sims = function(curr_results_dir, nsave = 24, coeff_list, initial_temps,
     colnames(init_df_wide) = paste0("init",0:9)
     df_wide = cbind(df_wide, init_df_wide)
     df_wide$start_date = start_date
-    
+    print(head(sims_wide))
     return(list(df_wide = df_wide, sims_wide = sims_wide))
   }else{
    stop("You should not be running GLM with anything other than nsave=24 for forecasting. Please check your nml file!")   

@@ -23,7 +23,9 @@ main=function(start_date, stop_date=NULL,
      lw_factor = 1, 
      sed_temp_mean = c(11.39072901, 14.85279613), 
      results_dir_number = 1,
-     nml_file_name = "glm3.nml"){
+     nml_file_name = "glm3.nml",
+     lake_temps = data.table::fread("https://s3.flare-forecast.org/targets/fcre_v2/fcre/fcre-targets-insitu.csv"),
+     obs_inflow = data.table::fread("https://s3.flare-forecast.org/targets/fcre_v2/fcre/fcre-targets-inflow.csv")){
   
   if (!dir.exists("FINAL_RESULTS")){
     dir.create("FINAL_RESULTS")
@@ -33,7 +35,7 @@ main=function(start_date, stop_date=NULL,
   # get inputs
   print("working on day")
   print(start_date)
-  inputs_param_list = get_inputs(start_date)
+  inputs_param_list = get_inputs(start_date, lake_temps, obs_inflow)
   print(inputs_param_list)
   print("made it to main")
   # will be null if there are too many missing observations for start_date_hindcast from which to 
@@ -75,7 +77,7 @@ main=function(start_date, stop_date=NULL,
   
 
   # loop over ensemble members
-#  for (i in ensemble_members){
+  # we only want the 30 ensemble members, so I only go up to 30
   for (i in 1:31){
     # extract current NOAA met data
     curr_met_file = dplyr::filter(noaa_met_GLM, ensemble == i)
@@ -156,7 +158,7 @@ main=function(start_date, stop_date=NULL,
     
     # finally, run GLM on the folder for current ensemble member
     print(paste("running sim", i))
-    GLM3r::run_glm(sim_folder = sim_dir_i, verbose = TRUE)
+    GLM3r::run_glm(sim_folder = sim_dir_i, verbose = FALSE)
     
     print(paste("GLM simulation", i, "is complete."))
 
@@ -172,13 +174,14 @@ main=function(start_date, stop_date=NULL,
                             start_date = start_date)
 
   # write to a place where I will find files
-  write.csv(my_results$sim_wide, file.path(final_results_dir,
+  write.csv(my_results$sims_wide, file.path(final_results_dir,
             paste0("results_", start_date, ".csv")))
 
   # delete the result files
   unlink(grep("*Results", list.files(), value = TRUE), recursive = TRUE)
 }
-
+lake_temps <- data.table::fread("https://s3.flare-forecast.org/targets/fcre_v2/fcre/fcre-targets-insitu.csv")
+obs_inflow <- data.table::fread("https://s3.flare-forecast.org/targets/fcre_v2/fcre/fcre-targets-inflow.csv")
 #biasdat = read.csv("bias_dat_forHetGP.csv")
 #biasdat$date = paste(biasdat$YEAR, biasdat$MONTH, biasdat$DAY, sep = "-")
 #biasdat$date = as.POSIXct(biasdat$date, tz = "UTC")
@@ -189,14 +192,39 @@ main=function(start_date, stop_date=NULL,
 #actual_dates = all_dates[1:97]
 #dates_char = as.character(actual_dates)
 df=make_ymd()
-df$YEAR = 2022
-mydates = paste(df$YEAR, df$MONTH, df$DAY, sep = "-")
-mydates = as.character(as.Date(mydates, tz = "UTC"))
-dates_char = mydates[!is.na(mydates)]
-dates_char = "2021-10-03"
-#main(start_date = "2022-02-20")
-#main(start_date = "2022-02-21")
+df2=make_ymd()
+df3 = make_ymd()
+df4 = make_ymd()
+df$YEAR = 2020
+df2$YEAR = 2021
+df3$YEAR = 2022
+df4$YEAR = 2023
+dates20 = paste(df$YEAR, df$MONTH, df$DAY, sep = "-")
+mydates = as.character(as.Date(dates20, tz = "UTC"))
+dates_char20 = mydates[!is.na(mydates)]
+
+dates21 = paste(df2$YEAR, df2$MONTH, df2$DAY, sep = "-")
+mydates = as.character(as.Date(dates21, tz = "UTC"))
+dates_char21 = mydates[!is.na(mydates)]
+
+dates22 = paste(df3$YEAR, df3$MONTH, df3$DAY, sep = "-")
+mydates = as.character(as.Date(dates22, tz = "UTC"))
+dates_char22 = mydates[!is.na(mydates)]
+
+dates23 = paste(df4$YEAR, df4$MONTH, df4$DAY, sep = "-")
+mydates = as.character(as.Date(dates23, tz = "UTC"))
+dates_char23 = mydates[!is.na(mydates)]
+
+#which(dates_char20 == "2021-01-09")
+#dates_char20 = dates_char20[277:366]
+
+alldates = c(dates_char20, dates_char21, dates_char22, dates_char23)
+myidx = which(alldates== "2023-01-01")
+alldates = alldates[myidx:length(alldates)]
+#alldates = "2021-01-30"
+#notes
+# for some weird fucking reason 2021-01-09 won't run
 #for (i in 1:2){
-for(i in 1:length(dates_char)){
-  main(start_date = dates_char[i])
+for(i in 1:length(alldates)){
+  main(start_date = alldates[i])
 }

@@ -14,17 +14,12 @@
 # mydates = unique(paste(bdat$YEAR, bdat$MONTH, bdat$DAY, sep = "-"))
 # which(mydates == "2020-9-25")
 # good_dates = mydates[270:length(mydates)] #1-456
+########################################################################################################
 
-
-#start_date = "2022-10-30"
-#biasdat = read.csv("C:/Users/Maike/Box Sync/DEEP_LEARNING/SurrogateModeling/Data/bias_dat_forHetGP.csv")
-#biasdat$date = paste(biasdat$YEAR, biasdat$MONTH, biasdat$DAY, sep = "-")
-#biasdat$date = as.POSIXct(biasdat$date, tz = "UTC")
-# including 7 day spinup, start date should be 2020-10-02 or later
-
-#start_date = "2021-08-04"
-#main(start_date = "2021-01-29")
-get_inputs = function(start_date, stop_date = NULL,
+get_inputs = function(start_date, 
+                      lake_temps, 
+                      obs_inflow, 
+                      stop_date = NULL,
                       Kw = 0.87, 
                       coeff_mix_hyp = 0.6458725, 
                       sw_factor = 1,
@@ -55,15 +50,17 @@ get_inputs = function(start_date, stop_date = NULL,
   # initial conditions -- vector of length 10 
   # for depths 0 thru 9
   # checked
-  initial_temps = get_initial_conditions(start_date_hindcast)
-  if (is.na(initial_temps)){
+  initial_temps = get_initial_conditions(start_date_hindcast, lake_temps)
+  if (anyNA(initial_temps)){
     print("skipping day--not enough observed data to calculate initial values!")
-    return(NA)
+    return(NULL)
   }
+  #print("too far")
   # NOT SURE IF I NEED THIS FUT FLAG bc it will always be true for this first exercise!!
   if (fut_flag){
     # if fut_flag: do the interpolation 
-    inflow_outflow_list = get_inflow_forecast(start_date)
+    print('goign t get_inflow function')
+    inflow_outflow_list = get_inflow_forecast(start_date, start_date_hindcast, stop_date = NULL, obs_inflow)
     inflows = inflow_outflow_list$all_inflow
     outflows = inflow_outflow_list$all_outflow
   }else{
@@ -167,9 +164,9 @@ check_date_forecast = function(start_date, stop_date = NULL){
 # sensor data of lake temperature--updated every day
 ###############################################################################
 
-get_initial_conditions = function(start_date){
+get_initial_conditions = function(start_date, lake_temps){
   init_date = as.POSIXct(start_date, tz = "UTC") - as.difftime(1, unit="days")
-  lake_temps <- data.table::fread("https://s3.flare-forecast.org/targets/fcre_v2/fcre/fcre-targets-insitu.csv")
+  #lake_temps <- data.table::fread("https://s3.flare-forecast.org/targets/fcre_v2/fcre/fcre-targets-insitu.csv")
   
   lake_init = filter(lake_temps) %>%
     dplyr::filter(variable == "temperature") %>%
@@ -183,9 +180,12 @@ get_initial_conditions = function(start_date){
   # are any depths missing?
   idx = match(good_depths, lake_init$depth)
   avail_depths  = lake_init$depth[idx]
+  
+  print(sum(is.na(avail_depths)))
   if (sum(is.na(avail_depths))>=8){
     return(NA)
   }
+
 
   if (setequal(avail_depths, good_depths)){
     return(lake_init$observation[idx])
@@ -204,17 +204,19 @@ get_initial_conditions = function(start_date){
 # no need to check start/stop dates--they will already have been checked
 ############################################################################
 get_NOAA_forecast = function(start_date, stop_date = NULL){
-  #use_ler_vars = FALSE # don't know what this is!
+  #use_ler_vars = FALSE # don't know what this is
   
   # cloud directory for NOAA forecasts
-  forecast_dir <- arrow::s3_bucket("drivers/noaa/gefs-v12/stage2/parquet",
-                                   endpoint_override = "s3.flare-forecast.org", anonymous = TRUE)
-  df_fut <- arrow::open_dataset(forecast_dir, partitioning = c("cycle","reference_date"))
+   forecast_dir <- arrow::s3_bucket("drivers/noaa/gefs-v12-reprocess/stage2/parquet/0", 
+   endpoint_override = "s3.flare-forecast.org", anonymous = TRUE)
+
+   df_fut <- arrow::open_dataset(forecast_dir, partitioning = c("reference_date", "site_id"))
   
   # cyle = 0 means start at hour 0 I think?
   # start_date is just the character date -- 'YYYY-MM-DD'
   forecast <- df_fut |>
-    dplyr::filter(site_id == "fcre", reference_date == start_date, cycle == 0) |>
+    #dplyr::filter(site_id == "fcre", reference_date == start_date, cycle == 0)
+    dplyr::filter(site_id == "fcre", reference_date == start_date) |>
     dplyr::select(datetime, parameter,variable,prediction) |>
     dplyr::collect() |>
     tidyr::pivot_wider(names_from = variable, values_from = prediction) |>
@@ -262,7 +264,6 @@ get_NOAA_forecast = function(start_date, stop_date = NULL){
   
 }
 
-
 ######################################################################################
 # function to get only the 1 day ahead forecasts used for spinup
 # hindcast will start at start_date - lookback number of days (set to 7 by default)
@@ -275,10 +276,10 @@ get_NOAA_hindcast = function(start_date, lookback = 7){
   full_time_hist <- seq(start_hind_posix, start_date_forecast, by = "1 hour")
   
   
-  past_dir <- arrow::s3_bucket("drivers/noaa/gefs-v12/stage3/parquet",
+  past_dir <- arrow::s3_bucket("drivers/noaa/gefs-v12-reprocess/stage3/parquet",
                                endpoint_override = "s3.flare-forecast.org", anonymous = TRUE)
   df_past <- arrow::open_dataset(past_dir, partitioning = c("site_id"))
-  
+   
   historical_noaa <- arrow::open_dataset(past_dir) |>
     dplyr::filter(site_id == "fcre") |>
     dplyr::select(datetime, parameter,variable,prediction) |>
@@ -317,20 +318,21 @@ get_NOAA_hindcast = function(start_date, lookback = 7){
 #############################################################################
 get_NOAA_inflow = function(start_date, lookback = 7){
   # cloud directory for NOAA forecasts
-  forecast_dir <- arrow::s3_bucket("drivers/noaa/gefs-v12/stage2/parquet",
-                                   endpoint_override = "s3.flare-forecast.org", anonymous = TRUE)
-  df_fut <- arrow::open_dataset(forecast_dir, partitioning = c("cycle","reference_date"))
-  
+  forecast_dir <- arrow::s3_bucket("drivers/noaa/gefs-v12-reprocess/stage2/parquet/0", 
+   endpoint_override = "s3.flare-forecast.org", anonymous = TRUE)
+   
+  df_fut <- arrow::open_dataset(forecast_dir, partitioning = c("reference_date", "site_id"))
   # cyle = 0 means start at hour 0 I think?
   # start_date is just the character date -- 'YYYY-MM-DD'
   forecast <- df_fut |>
-    dplyr::filter(site_id == "fcre", reference_date == start_date, cycle == 0) |>
+    #dplyr::filter(site_id == "fcre", reference_date == start_date, cycle == 0)
+    dplyr::filter(site_id == "fcre", reference_date == start_date) |>
     dplyr::select(datetime, parameter,variable,prediction) |>
     dplyr::collect() |>
     tidyr::pivot_wider(names_from = variable, values_from = prediction) |>
     dplyr::arrange(parameter, datetime)
   
-  # do same shit for hindcast...
+  # do same for hindcast...
   start_date_forecast = as.POSIXct(start_date, tz = "UTC")
   start_hind_posix = start_date_forecast - lubridate::days(lookback)
   stop_hind_posix = start_date_forecast - lubridate::hours(1)
@@ -338,8 +340,9 @@ get_NOAA_inflow = function(start_date, lookback = 7){
   full_time_hist <- seq(start_hind_posix, stop_hind_posix, by = "1 hour")
   
   
-  past_dir <- arrow::s3_bucket("drivers/noaa/gefs-v12/stage3/parquet",
+  past_dir <- arrow::s3_bucket("drivers/noaa/gefs-v12-reprocess/stage3/parquet",
                                endpoint_override = "s3.flare-forecast.org", anonymous = TRUE)
+                               
   df_past <- arrow::open_dataset(past_dir, partitioning = c("site_id"))
   hindcast = df_past |>
     dplyr::filter(site_id == "fcre") |>
@@ -357,7 +360,7 @@ get_NOAA_inflow = function(start_date, lookback = 7){
 # function to get inflow and outflow based on NOAA met conditions
 # returns list with inflow and outflow data.frames for all ensemble members
 #############################################################################
-get_inflow_forecast = function(start_date, start_date_hindcast, stop_date = NULL){
+get_inflow_forecast = function(start_date, start_date_hindcast, stop_date = NULL, obs_inflow){
   
   # this is just the NOAA file with all ensemble members,
   # but without extra formatting
@@ -367,7 +370,7 @@ get_inflow_forecast = function(start_date, start_date_hindcast, stop_date = NULL
   ensemble_members <- unique(noaa_met$parameter)
   
   # read in observed inflow
-  obs_inflow <- data.table::fread("https://s3.flare-forecast.org/targets/fcre_v2/fcre/fcre-targets-inflow.csv")
+  #obs_inflow <- data.table::fread("https://s3.flare-forecast.org/targets/fcre_v2/fcre/fcre-targets-inflow.csv")
   
   inflow <- obs_inflow %>%
     tidyr::pivot_wider(names_from = variable, values_from = observation) %>%
@@ -393,7 +396,7 @@ get_inflow_forecast = function(start_date, start_date_hindcast, stop_date = NULL
   obs_met <- met %>%
     dplyr::filter((datetime >= noaa_met$datetime[1] - lubridate::days(1))
                              & (datetime < noaa_met$datetime[1]) )
-  head(noaa_met)
+  #head(noaa_met)
   # merge data from noaa met , obs met, initial flow and initial temp data
   d = process_noaa_for_inflow(ensemble_members,noaa_met, obs_met, init_flow, init_temp)
   
@@ -425,7 +428,6 @@ get_inflow_forecast = function(start_date, start_date_hindcast, stop_date = NULL
     d_inflow = dplyr::filter(d_inflow, time %in% time_seq)
     d_outflow = dplyr::filter(d_outflow, time %in% time_seq)
   }
-  
   
   # Don't know what to do w/ this ask Quinn
   # Do I need the two inflows?? Or is just 1 OK?
@@ -530,29 +532,4 @@ process_noaa_for_inflow = function(ensemble_members, noaa_met, obs_met, init_flo
   noaa_met, obs_met, init_flow, init_temp)
   
 }
-
-###################################################################################
-# JUNK JUNK JUNK
-# this was meant to generate 1 inflow/outflow file for anything in the historical 
-# period (e.g. forecast does not exceed today)
-# not sure we want this for noaa data? should it not be based on noaa met file 
-# even if it's a historical date? Ask Quinn
-get_inflow_historical = function(start_date, stop_date){
-  start_date= as.POSIXct(start_date, tz="UTC")
-  stop_date = as.POSIXct(stop_date, tz = "UTC")
-  time_seq = as.Date(seq(start_date, stop_date, by = "1 day"))
-  obs_inflow <- data.table::fread("https://s3.flare-forecast.org/targets/fcre_v2/fcre/fcre-targets-inflow.csv")
-  variables = c("time", "FLOW", "TEMP", "SALT")
-  
-  obs_inflow_sub = dplyr::filter(obs_inflow, datetime %in% time_seq)
-  
-  obs_inflow_tmp = dplyr::filter(obs_inflow_sub, variable %in% variables) %>%
-    dplyr::rename(time = datetime) %>%
-    dplyr::select(time, variable, observation) %>%
-    tidyr::pivot_wider(names_from = variable, values_from = observation)
-  head(obs_inflow_tmp)
-  obs_outflow_tmp = obs_inflow_tmp #??????
-  return(list(obs_inflow_tmp = obs_inflow_tmp, obs_outflow_tmp = obs_outflow_tmp))
-}
-
 
