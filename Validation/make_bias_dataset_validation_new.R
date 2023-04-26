@@ -1,10 +1,14 @@
 # Here I construct an observed dataset for each horizon, then merge w/ GLM surrogate and calculate bias
 # also I added code so the temperature input is added
 # see below for how to get observed data 
-# IMPORTANT: NOAA is stupid and defines reference date as the first day of the forecast
-# I define reference date as the day before a forecast starts
-# in the resulting data, start_date is MY definition of reference date (e.g. the day previous to when a forecast 
-# is initiated. Thus, the first forecast, given a start_date starts on day: start_date + 1 day
+train_dates = c("2020-10-19", "2021-02-28", "2021-06-21", "2021-07-26")
+train_dates = "2021-06-21"
+bdat = read.csv("Bias_dataset_validation.csv")
+mydat = bdat[!(complete.cases(bdat)), ]
+head(mydat)
+
+remove(test)
+
 make_bias_horizon_datasets = function(train_dates, obs_depth=1, method="Average", lookback = 4,
                                       surrogate_dir = "SURROGATES", train_end_date, obs_data){
 
@@ -15,7 +19,7 @@ make_bias_horizon_datasets = function(train_dates, obs_depth=1, method="Average"
   # be in the observed data -- basically, we can't use observations in the 'future' when validating,
   # b/c that would be cheating
 
-  train_end_date = as.Date(train_end_date) - lubridate::days(1)
+  train_end_date = as.Date(train_end_date) 
   
   obs_data = filter(obs_data, date >= as.Date("2020-08-01"))
   obs_data = dplyr::filter(obs_data, date <= train_end_date)
@@ -29,11 +33,12 @@ make_bias_horizon_datasets = function(train_dates, obs_depth=1, method="Average"
     print(paste("horizon", h))
     for (i in train_dates){
       start_date = i
-      # the real start_date (e.g. reference date) is the day previous to 
-      # any date in train_dates (those all represent the first forecast horizon)
-      start_date = as.Date(start_date) - lubridate::days(1)
+
+      start_date = as.Date(start_date) 
+      
       # grab DOY that corresponds to the start date
       start_DOY = dplyr::filter(obs_data, date == start_date)$DOY[1]
+      
       # if the day is not in the observed data, skip day
       if(is.na(start_DOY)){
         #print("day is missing!")
@@ -73,19 +78,19 @@ make_bias_horizon_datasets = function(train_dates, obs_depth=1, method="Average"
   obs_DF = as.data.frame(obs_DF)
   obs_DF$start_date = as.character(obs_DF$start_date)
   obs_DF$Temp_covar = NULL
+  head(obs_DF)
   # Now, merge w/ mean from surrogate
-
   newdf = right_join(surrogate_preds, obs_DF, by = c("Depth", "DOY", "Horizon", "start_date"))
+  
   # calculate bias -> observed - surrogate
   # Mean is mean of y_hat, GP surrogate for GLM
   newdf$bias = newdf$temp_obs - newdf$Mean
   # save and fit with another script
   newdf = newdf %>% dplyr::select(DOY, Depth ,Horizon, Temp_covar, start_date, end_date, temp_obs, bias)
-  # date corresponds to 'date' in NOAA/GLM simulations for easier plotting later
-  newdf$date = end_date
   write.csv(newdf, file.path(surrogate_dir, "Bias_dataset_validation.csv"))
   
 }
+
 
 make_bias_horizon_datasets_validation = function(train_dates, 
                                                  new_date,
@@ -118,9 +123,7 @@ make_bias_horizon_datasets_validation = function(train_dates,
       
       start_date = train_dates[i]
       
-      # get the reference date, remember that train_dates are really the first
-      # forecast horizon from NOAA/GLM sims
-      start_date = as.Date(start_date) - lubridate::days(1)
+      start_date = as.Date(start_date) 
       # grab DOY that corresponds to the start date
       start_DOY = dplyr::filter(obs_data, date == start_date)$DOY[1]
       
@@ -148,7 +151,7 @@ make_bias_horizon_datasets_validation = function(train_dates,
   }
   
   obs_DF = data.table::rbindlist(obs_List)
-  head(obs_DF)
+  
   colnames(obs_DF)[3] = "Depth"
   colnames(obs_DF)[1] = "end_date"
   obs_DF$start_date = as.character(obs_DF$start_date)
@@ -159,19 +162,17 @@ make_bias_horizon_datasets_validation = function(train_dates,
   # calculate bias -> observed - surrogate
   # Mean is mean of y_hat, GP surrogate for GLM
   newdf$bias = newdf$temp_obs - newdf$Mean
-  # save and fit with another script
+
   newdf = newdf %>% dplyr::select(DOY, Depth ,Horizon, Temp_covar, start_date, end_date, temp_obs, bias)
-  # date will correspond to 'date' variable in NOAA/GLM data
-  newdf$date = end_date
+
   newdf = newdf[complete.cases(newdf), ]
   write.csv(newdf, file.path(surrogate_dir, "Bias_dataset_validation.csv"))
   
 }
 
 make_obs_testing_data = function(new_date, obs_depth=1, lookback = 4, obs_data){
-  # new_date is the date of the first forecast horizon, so we need the previous date
-  # as the ref date
-  start_date = as.Date(new_date) - lubridate::days(1)
+
+  start_date = as.Date(new_date) 
   obs_data = filter(obs_data, date >= as.Date("2020-09-01"))
   obs_data = dplyr::filter(obs_data, date <= (start_date + lubridate::days(30)))
   
@@ -207,8 +208,7 @@ make_obs_testing_data = function(new_date, obs_depth=1, lookback = 4, obs_data){
   obs_DF = as.data.frame(obs_DF)
   
   obs_DF$start_date = as.character(start_date)
-  # date corresponds to 'date' in NOAA/GLM data
-  obs_DF$date = obs_DF$end_date
+
   
   return(obs_DF)
 }

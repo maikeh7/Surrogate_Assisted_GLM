@@ -1,8 +1,12 @@
-
+i=1
+j=1
+head(temp_file)
+train_files=train_files[1:3]
 process_GLM_sims = function(obs_depth=1, method="Average",lookback=4,train_files, 
                             train_end_date, glm_path, 
                             horizon_dir = "HORIZON_TRAIN",
-                            obs_data){
+                            obs_data, 
+                            spinup=7){
   ymd = make_ymd()
   # get rid of dates that occurred after training dates
   obs_data= filter(obs_data, date <= as.Date(train_end_date))
@@ -28,21 +32,16 @@ process_GLM_sims = function(obs_depth=1, method="Average",lookback=4,train_files
       temp_file$date = as.POSIXct(temp_file$date, tz = "UTC")
       temp_file = arrange(temp_file, date)
       # filter to only get actual start date, as the 7 day spinup is included in these simulations
-      actual_start = temp_file$date[1] + lubridate::days(6)
-      
-      # get the actual reference date 
-      # actual_start is the first forecast horizon, so the ref date is the day before actual_start
-      ref_date = actual_start - lubridate::days(1)
+      actual_start = temp_file$date[1] + lubridate::days(spinup)
       
       # get the temperature corresponding to start_date
       # which will be the average of the PREVIOUS XX days
-      start_date_obs_temp = get_obs_temp(ref_date, obs_depth, obs_df)
+      start_date_obs_temp = get_obs_temp(actual_start, obs_depth, obs_df)
       
       temp_file = filter(temp_file, date >= actual_start)
-      temp_file$ref_date = ref_date
-      
+     
       # grab the correct forecast horizon
-      end_date = ref_date + lubridate::days(i)
+      end_date = actual_start + lubridate::days(i)
       temp_file = filter(temp_file, date == end_date )
       
       # add on observed temp at START DATE here (it will be the same for all depths!)
@@ -59,10 +58,10 @@ process_GLM_sims = function(obs_depth=1, method="Average",lookback=4,train_files
     
     BigDF = data.table::rbindlist(BigDF)
     BigDF$horizon = i
-    BigDF_sub = BigDF %>% dplyr::select(depth_int, Temp_C_00UTC, ref_date, horizon, start_date_obs_temp)
+    BigDF_sub = BigDF %>% dplyr::select(depth_int, Temp_C_00UTC, start_date, horizon, start_date_obs_temp)
     
-    BigDF_sub$start_date = as.character(BigDF_sub$ref_date)
-    BigDF_sub$ref_date = NULL
+    BigDF_sub$start_date = as.character(BigDF_sub$start_date)
+
     mydates = strsplit(BigDF_sub$start_date, "-")
     
     mydates = data.frame(do.call("rbind", mydates))
@@ -85,10 +84,9 @@ process_GLM_sims = function(obs_depth=1, method="Average",lookback=4,train_files
   
 }
 
-
 # checked
 append_GLM_data=function(new_date, method="Average", lookback=4, obs_depth=1,
-                             glm_path, horizon_dir, obs_data){
+                             glm_path, horizon_dir, obs_data, spinup=7){
   ymd = make_ymd()
   
   obs_data = filter(obs_data, date >= as.Date("2020-09-01"))
@@ -114,15 +112,7 @@ append_GLM_data=function(new_date, method="Average", lookback=4, obs_depth=1,
   curr_file = dplyr::arrange(curr_file, date)
 
   # filter to only get actual start date, as the 7 day spinup is included in these simulations
-  actual_start = temp_file$date[1] + lubridate::days(6)
-  
-  # get the actual reference date 
-  # actual_start is the first forecast horizon, so the ref date is the day before actual_start
-  ref_date = actual_start - lubridate::days(1)
-  
-  # get the temperature corresponding to start_date
-  # which will be the average of the PREVIOUS XX days
-  start_date_obs_temp = get_obs_temp(ref_date, obs_depth, obs_df)
+  actual_start = temp_file$date[1] + lubridate::days(spinup)
 
   #print(actual_start)
   # get the temperature corresponding to start_date
@@ -130,7 +120,7 @@ append_GLM_data=function(new_date, method="Average", lookback=4, obs_depth=1,
                                      obs_depth, obs_df)
   
   curr_file = dplyr::filter(curr_file, date >= actual_start)
-  curr_file$ref_date = ref_date
+  curr_file$start_date = actual_start
 
   horizon=1:30
  
@@ -144,14 +134,14 @@ append_GLM_data=function(new_date, method="Average", lookback=4, obs_depth=1,
     bigDF$start_date = as.character(bigDF$start_date)
     
     # grab the correct forecast horizon
-    end_date = ref_date + lubridate::days(i)
+    end_date = actual_start + lubridate::days(i)
     temp_file = filter(curr_file, date == end_date )
     # add on observed temp at START DATE here (it will be the same for all depths!)
     temp_file$start_date_obs_temp = start_date_obs_temp
  
     temp_file$horizon = i
     
-    temp_sub = temp_file[,c("depth_int", "Temp_C_00UTC", "ref_date",
+    temp_sub = temp_file[,c("depth_int", "Temp_C_00UTC", "start_date",
                             "horizon", "start_date_obs_temp")]
 
     temp_sub$start_date = as.character(temp_sub$ref_date)
