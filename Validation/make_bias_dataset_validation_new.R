@@ -1,14 +1,6 @@
 # Here I construct an observed dataset for each horizon, then merge w/ GLM surrogate and calculate bias
 # also I added code so the temperature input is added
 # see below for how to get observed data 
-train_dates = c("2020-10-19", "2021-02-28", "2021-06-21", "2021-07-26")
-train_dates = "2021-06-21"
-bdat = read.csv("Bias_dataset_validation.csv")
-mydat = bdat[!(complete.cases(bdat)), ]
-head(mydat)
-
-remove(test)
-
 make_bias_horizon_datasets = function(train_dates, obs_depth=1, method="Average", lookback = 4,
                                       surrogate_dir = "SURROGATES", train_end_date, obs_data){
 

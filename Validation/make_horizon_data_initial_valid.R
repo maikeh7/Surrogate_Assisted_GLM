@@ -1,12 +1,9 @@
-i=1
-j=1
-head(temp_file)
-train_files=train_files[1:3]
+
 process_GLM_sims = function(obs_depth=1, method="Average",lookback=4,train_files, 
                             train_end_date, glm_path, 
                             horizon_dir = "HORIZON_TRAIN",
                             obs_data, 
-                            spinup=7){
+                            spinup=6){
   ymd = make_ymd()
   # get rid of dates that occurred after training dates
   obs_data= filter(obs_data, date <= as.Date(train_end_date))
@@ -86,7 +83,7 @@ process_GLM_sims = function(obs_depth=1, method="Average",lookback=4,train_files
 
 # checked
 append_GLM_data=function(new_date, method="Average", lookback=4, obs_depth=1,
-                             glm_path, horizon_dir, obs_data, spinup=7){
+                             glm_path, horizon_dir, obs_data, spinup=6){
   ymd = make_ymd()
   
   obs_data = filter(obs_data, date >= as.Date("2020-09-01"))
@@ -112,7 +109,7 @@ append_GLM_data=function(new_date, method="Average", lookback=4, obs_depth=1,
   curr_file = dplyr::arrange(curr_file, date)
 
   # filter to only get actual start date, as the 7 day spinup is included in these simulations
-  actual_start = temp_file$date[1] + lubridate::days(spinup)
+  actual_start = curr_file$date[1] + lubridate::days(spinup)
 
   #print(actual_start)
   # get the temperature corresponding to start_date
@@ -144,8 +141,7 @@ append_GLM_data=function(new_date, method="Average", lookback=4, obs_depth=1,
     temp_sub = temp_file[,c("depth_int", "Temp_C_00UTC", "start_date",
                             "horizon", "start_date_obs_temp")]
 
-    temp_sub$start_date = as.character(temp_sub$ref_date)
-    temp_sub$ref_date = NULL
+    temp_sub$start_date = as.character(temp_sub$start_date)
     
     mydates = strsplit(temp_sub$start_date, "-")
     
