@@ -6,11 +6,20 @@ read_obs_data = function(){
   return(obs_data)
 }
 
-
-
-read_surrogate_preds= function(surrogate_dir){
-  surrogate_preds = readRDS(file.path(surrogate_dir,"GLM_Surrogate_SK.Rds"))
-  return(surrogate_preds)
+read_surrogate_preds= function(surrogate_dir, model_type){
+  if (model_type == "GLM"){
+    surrogate_preds = readRDS(file.path(surrogate_dir,"GLM_Surrogate_SK.Rds"))
+    return(surrogate_preds)
+  }
+  if (model_type == "GLM_byDepth"){
+    surrogate_preds = readRDS(file.path(surrogate_dir,"GLM_Surrogate_SK.Rds"))
+    return(surrogate_preds)
+  }
+  if (model_type == "persistence"){
+    surrogate_preds = readRDS(file.path(surrogate_dir,"PersistenceDF.Rds"))
+    return(surrogate_preds)
+  }
+  
 }
 
 # function to make MONTH/DAY/DOY dataframe for merging w/ other datasets
@@ -84,5 +93,6 @@ update_observed_data = function(){
   colnames(lake_temps)[2] = "depth_int"
   colnames(lake_temps)[3] = "temp_obs"
   lake_temps = lake_temps[ , c("YEAR", "MONTH", "DAY", "depth_int", "temp_obs", "DOY" , "datetime")]
+  write.csv(lake_temps, "home/maike/GP_surrogate_code/DATA/Bias_dataset/Observed_data.csv")
   write.csv(lake_temps, "C:/Users/Maike/Box Sync/DEEP_LEARNING/SurrogateModeling/Data/Observed_data.csv")
 }

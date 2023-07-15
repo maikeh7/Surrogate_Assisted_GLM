@@ -16,10 +16,7 @@ get_preds = function(results_dir, surrogate_dir){
   
 }
 
-tail(GLM_fit)
-tail(Bias_fit)
-obs_data = observed_data
-get_preds_valid = function(new_date, results_dir, results_dir_formatted, surrogate_dir, obs_data){
+get_preds_valid = function(new_date, results_dir, surrogate_dir, obs_data){
   GLM_fit = readRDS(file.path(surrogate_dir, "GLM_Surrogate_SK.Rds")) 
   Bias_fit =  readRDS(file.path(surrogate_dir, "bias_surrogate.Rds")) 
   GLM_fit = arrange(GLM_fit, DOY, Depth, Horizon, Temp_covar)
@@ -59,7 +56,51 @@ get_preds_valid = function(new_date, results_dir, results_dir_formatted, surroga
   #write.csv(formatted, file.path(results_dir_formatted, paste0("preds_formatted", start_date, ".csv")))
   
 }
-class(start_date)
+
+get_preds_valid_persistence = function(new_date,
+                                       results_dir,
+                                       surrogate_dir,
+                                       persist_dir,
+                                       obs_data){
+  persist_fit = readRDS(file.path(persist_dir, "PersistenceDF.Rds")) 
+
+  persist_fit = persist_fit[, c(
+                                "Horizon",
+                                "fit",
+                                "se.fit",
+                                "temp_obs",
+                                "DOY",
+                                "Depth",
+                                "bias",
+                                "start_date")]
+
+  Bias_fit =  readRDS(file.path(surrogate_dir, "bias_surrogate_persist.Rds")) 
+
+  persist_fit = right_join(Bias_fit, persist_fit, by = c("DOY", "Depth", "Horizon", "start_date"))
+
+  # obs_data = read.csv(file.path(surrogate_dir, "Bias_dataset_validation.csv"))
+  persist_fit$BC_mean = persist_fit$fit + persist_fit$Mean
+  persist_fit$BC_sd = sqrt((persist_fit$se.fit)^2 + persist_fit$Var)
+  
+  persist_fit$BCLower <- qnorm(0.05, persist_fit$BC_mean, persist_fit$BC_sd)
+  persist_fit$BCUpper <- qnorm(0.95, persist_fit$BC_mean, persist_fit$BC_sd)
+  
+  obs_test_data = make_obs_testing_data(new_date, obs_data = obs_data)
+ 
+  start_DOY = obs_test_data$DOY[1]
+  start_date = obs_test_data$start_date[1]
+  
+  preds_df = filter(persist_fit, DOY == start_DOY) %>% 
+    dplyr::select(DOY, Depth, Horizon, Temp_covar, start_date, BC_mean, BC_sd, BCLower, BCUpper,
+                  Mean, se.fit, fit)
+  preds_df$start_date = as.character(preds_df$start_date)
+  preds_df = right_join(preds_df, obs_test_data, by = c("DOY", "Depth", "Horizon", "start_date"))
+
+  write.csv(preds_df, file.path(results_dir, paste0("preds-persist", start_date, ".csv")))
+  #write.csv(formatted, file.path(results_dir_formatted, paste0("preds_formatted", start_date, ".csv")))
+  
+}
+
 #get_scores = function(test_data){
   
 #}

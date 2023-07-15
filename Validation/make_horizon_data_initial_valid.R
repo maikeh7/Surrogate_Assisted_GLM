@@ -1,9 +1,11 @@
+# spinup is days of spinup minus 1
+# so for a 7 day spinup, use spinup=6
 
 process_GLM_sims = function(obs_depth=1, method="Average",lookback=4,train_files, 
                             train_end_date, glm_path, 
                             horizon_dir = "HORIZON_TRAIN",
                             obs_data, 
-                            spinup=6){
+                            spinup=0){
   ymd = make_ymd()
   # get rid of dates that occurred after training dates
   obs_data= filter(obs_data, date <= as.Date(train_end_date))
@@ -12,7 +14,6 @@ process_GLM_sims = function(obs_depth=1, method="Average",lookback=4,train_files
   obs_df = make_obs_data(obs_data, obs_depth = 1, lookback = 4)
   
   horizon = 1:30
-
   for (i in horizon){
     print(i)
     BigDF = list(length = length(train_files))
@@ -20,16 +21,21 @@ process_GLM_sims = function(obs_depth=1, method="Average",lookback=4,train_files
       #print(j)
       
       temp_file = data.table::fread(file.path(glm_path, train_files[j]))
-    
+  
       mydates= do.call(paste, c(temp_file[, .(YEAR, MONTH, DAY)], sep="-"))
-     # mydates = do.call(paste, c(temp_file[c("YEAR", "MONTH", "DAY")], sep="-"))
+    
       temp_file = cbind(cbind, temp_file[,-1 ], mydates)
       colnames(temp_file)[which(colnames(temp_file) == "mydates")] = "date"
-      #temp_file$date = paste(temp_file$YEAR, temp_file$MONTH, temp_file$DAY, sep = "-")
+      
       temp_file$date = as.POSIXct(temp_file$date, tz = "UTC")
       temp_file = arrange(temp_file, date)
+      
       # filter to only get actual start date, as the 7 day spinup is included in these simulations
-      actual_start = temp_file$date[1] + lubridate::days(spinup)
+      if (spinup > 0){
+        actual_start = temp_file$date[1] + lubridate::days(spinup)
+      }else{
+        actual_start = as.POSIXct(temp_file$start_date[1], tz = "UTC")
+      }
       
       # get the temperature corresponding to start_date
       # which will be the average of the PREVIOUS XX days
@@ -82,7 +88,7 @@ process_GLM_sims = function(obs_depth=1, method="Average",lookback=4,train_files
 }
 
 # checked
-append_GLM_data=function(new_date, method="Average", lookback=4, obs_depth=1,
+append_GLM_data = function(new_date, method="Average", lookback=4, obs_depth=1,
                              glm_path, horizon_dir, obs_data, spinup=6){
   ymd = make_ymd()
   
@@ -95,8 +101,6 @@ append_GLM_data=function(new_date, method="Average", lookback=4, obs_depth=1,
   # list all glm sims
   all_files = list.files(glm_path)
 
-  #all_files = list.files("/home/maike/GP_surrogate_code/DATA/GLM_sims/") 
-  
   # extract the glm sim corresponding to date of interest
   all_dates = sub(".*_(.*).csv", "\\1", all_files)
   file_name = all_files[grep(new_date, all_dates)]
@@ -109,9 +113,12 @@ append_GLM_data=function(new_date, method="Average", lookback=4, obs_depth=1,
   curr_file = dplyr::arrange(curr_file, date)
 
   # filter to only get actual start date, as the 7 day spinup is included in these simulations
-  actual_start = curr_file$date[1] + lubridate::days(spinup)
+  if (spinup > 0){
+     actual_start = curr_file$date[1] + lubridate::days(spinup)
+  }else{
+      actual_start = as.POSIXct(curr_file$start_date[1], tz = "UTC")
+  }
 
-  #print(actual_start)
   # get the temperature corresponding to start_date
   start_date_obs_temp = get_obs_temp(actual_start,
                                      obs_depth, obs_df)
@@ -161,4 +168,154 @@ append_GLM_data=function(new_date, method="Average", lookback=4, obs_depth=1,
                                                           "D", obs_depth, ".csv")))
 
   }
+}
+
+# make initial persistence dataset
+make_persistence_data = function(obs_depth=1,
+                                 method="Average",
+                                 lookback=4,
+                                 train_dates, 
+                                 train_end_date,
+                                 obs_data,
+                                 persist_dir){
+  #ymd = make_ymd()
+  # get rid of dates that occurred after training dates
+  obs_data= filter(obs_data, date <= as.Date(train_end_date))
+  obs_data = filter(obs_data, date >= as.Date("2020-09-01"))
+  # make the observed dataset 
+  obs_df = make_obs_data(obs_data, obs_depth = 1, lookback = 4)
+  
+  train_dates = as.Date(train_dates)
+  
+  Temp_covars = unlist(lapply(train_dates, function(x) get_obs_temp(x, obs_depth = 1, obs_df)))
+
+  Temp_covar_df = data.frame(start_date = train_dates, Temp_covar = Temp_covars)
+  
+  colnames(obs_data)[which(colnames(obs_data) == "depth_int")] = "Depth"
+  
+  biglist=list(length = length(train_dates))
+  giantlist = list(length=10)
+  for (j in 0:9){
+    biglist=list(length = length(train_dates))
+    #print(j)
+    d1 = filter(obs_data, Depth == j)
+    d1$date = as.Date(d1$date)
+    for (i in 1:length(train_dates)){
+      cur_date = train_dates[i]
+      myDOY = filter(obs_data, date == cur_date)$DOY[1]
+      Lag7date = cur_date - lubridate::days(7)
+      lag_dates = seq(Lag7date, cur_date, by = "day")
+      lagdf = data.frame(T = -7:0, date = lag_dates)
+      tempdf = filter(d1, (date >= Lag7date) & (date <= cur_date))
+      if (nrow(tempdf) < 5){
+        next
+      }
+      tempdf2 = tempdf[, c("temp_obs", "date")]
+      tempdf2 = right_join(tempdf2, lagdf,by="date")
+      
+      mod1 = lm(temp_obs~T, data = tempdf2)
+      
+      xnew = data.frame(T = -7:30)
+      preds = as.data.frame(predict(mod1, xnew, interval="confidence"))
+      
+      preds = as.data.frame(predict(mod1, xnew, se.fit = TRUE))
+      preds = preds[, c("fit", "se.fit", "residual.scale")]
+      
+      forecast_dates = data.frame(date=seq(Lag7date, (cur_date + lubridate::days(30)), by = "day"),
+                                  T = -7:30)
+      forecast_dates = cbind(forecast_dates, preds)
+      truevals= filter(d1, date %in% forecast_dates$date) 
+      truevals = truevals[, c("date", "temp_obs", "DOY")]
+      
+      forecast_dates = right_join(forecast_dates, truevals, by = "date")
+      
+      forecast_dates$start_date = cur_date
+      forecast_dates$bias = forecast_dates$temp_obs - forecast_dates$fit
+      
+      forecast_dates$DOY = myDOY
+      biglist[[i]] = forecast_dates
+    }
+    bigdf = data.table::rbindlist(biglist)
+    bigdf$Depth = j
+    giantlist[[j+1]] = bigdf
+    
+  }
+
+  persistencedf = data.table::rbindlist(giantlist)
+  persistencedf = right_join(persistencedf, Temp_covar_df, by = "start_date")
+  persistencedf = persistencedf[complete.cases(persistencedf), ]
+  colnames(persistencedf)[which(colnames(persistencedf) == "T")] = "Horizon"
+  saveRDS(persistencedf, file.path(persist_dir, "PersistenceDF.Rds"))
+  #saveRDS(persistencedf, "PersistenceDF.Rds")
+}
+
+append_persistence_data = function(new_date,
+                                   method="Average",
+                                   lookback=4,
+                                   obs_depth=1,
+                                   obs_data,
+                                   persist_dir){
+  persistencedf = readRDS(file.path(persist_dir, "PersistenceDF.Rds"))
+  
+  obs_data = filter(obs_data, date >= as.Date("2020-09-01"))
+  obs_data = filter(obs_data, date <= as.Date(new_date)) 
+
+  # make the observed dataset 
+  obs_df = make_obs_data(obs_data, obs_depth = 1, lookback = 4)
+  
+  
+  start_date_obs_temp = get_obs_temp(as.Date(new_date),
+                                     obs_depth, obs_df)
+  colnames(obs_data)[which(colnames(obs_data) == "depth_int")] = "Depth"
+
+  biglist = list(length=10)
+  for (j in 0:9){
+    d1 = filter(obs_data, Depth == j)
+    cur_date = as.Date(new_date)
+    myDOY = filter(obs_data, date == cur_date)$DOY[1]
+    Lag7date = cur_date - lubridate::days(7)
+    lag_dates = seq(Lag7date, cur_date, by = "day")
+    lagdf = data.frame(T = -7:0, date = lag_dates)
+    tempdf = filter(d1, (date >= Lag7date) & (date <= cur_date))
+    if (nrow(tempdf) < 5){
+      next
+    }
+    tempdf2 = tempdf[, c("temp_obs", "date")]
+    tempdf2 = right_join(tempdf2, lagdf,by="date")
+    
+    mod1 = lm(temp_obs~T, data = tempdf2)
+    
+    xnew = data.frame(T = -7:30)
+    preds = as.data.frame(predict(mod1, xnew, se.fit = TRUE))
+    preds = preds[, c("fit", "se.fit", "residual.scale")]
+    
+    forecast_dates = data.frame(date=seq(Lag7date, (cur_date + lubridate::days(30)), by = "day"),
+                                T = -7:30)
+    forecast_dates = cbind(forecast_dates, preds)
+    d1$date = as.Date(d1$date)
+    truevals= filter(d1, date %in% forecast_dates$date) 
+    
+    truevals = truevals[, c("date", "temp_obs", "DOY")]
+    
+    forecast_dates = right_join(truevals, forecast_dates, by = "date")
+    
+    forecast_dates$start_date = cur_date
+    forecast_dates$bias = forecast_dates$temp_obs - forecast_dates$fit
+    forecast_dates$DOY = myDOY
+    forecast_dates$Depth = j
+    biglist[[(j+1)]] = forecast_dates
+    
+  }
+ 
+  bigdf= data.table::rbindlist(biglist)
+  bigdf$Temp_covar = start_date_obs_temp
+  colnames(bigdf)[which(colnames(bigdf) == "T")] = "Horizon"
+
+  bigdf$Temp_covar = start_date_obs_temp
+  col_names = colnames(persistencedf)
+  bigdf = bigdf[, ..col_names]
+  colnames(bigdf)
+  res = rbind(persistencedf, bigdf)
+
+  saveRDS(res, file.path(persist_dir, "PersistenceDF.Rds"))
 }

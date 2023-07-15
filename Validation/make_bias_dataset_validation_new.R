@@ -1,16 +1,22 @@
 # Here I construct an observed dataset for each horizon, then merge w/ GLM surrogate and calculate bias
 # also I added code so the temperature input is added
 # see below for how to get observed data 
-make_bias_horizon_datasets = function(train_dates, obs_depth=1, method="Average", lookback = 4,
-                                      surrogate_dir = "SURROGATES", train_end_date, obs_data){
-
-  surrogate_preds = read_surrogate_preds(surrogate_dir)
+make_bias_horizon_datasets = function(train_dates, 
+                                      obs_depth=1, 
+                                      method="Average", 
+                                      lookback = 4,
+                                      surrogate_dir = "SURROGATES", 
+                                      train_end_date, 
+                                      obs_data,
+                                      model_type){
+  mymodel = model_type
+  # read in GLM surrogate--we need this to calculate bias
+  surrogate_preds = read_surrogate_preds(surrogate_dir, model_type = mymodel)
   
   # filter data so observed data only includes up until 2022-12-31 (earlier dates like 2018 won't
   # matter b/c they are filtered out later, but I don't want dates the surrogate was NOT trained on to 
   # be in the observed data -- basically, we can't use observations in the 'future' when validating,
   # b/c that would be cheating
-
   train_end_date = as.Date(train_end_date) 
   
   obs_data = filter(obs_data, date >= as.Date("2020-08-01"))
@@ -90,11 +96,13 @@ make_bias_horizon_datasets_validation = function(train_dates,
                                                  method="Average",
                                                  lookback = 4,
                                                  surrogate_dir, 
-                                                 obs_data){
+                                                 glm_path,
+                                                 obs_data,
+                                                 model_type){
+  mymodel = model_type
+  surrogate_preds = read_surrogate_preds(surrogate_dir, model_type = mymodel)
   
-  surrogate_preds = read_surrogate_preds(surrogate_dir)
-  
-  # filter data so observed data only includes up until 2022-12-31 (earlier dates like 2018 won't
+  # filter data so observed data only includes up until new_date (earlier dates like 2018 won't
   # matter b/c they are filtered out later, but I don't want dates the surrogate was NOT trained on to 
   # be in the observed data -- basically, we can't use observations in the 'future' when validating,
   # b/c that would be cheating
@@ -102,9 +110,17 @@ make_bias_horizon_datasets_validation = function(train_dates,
   obs_data = dplyr::filter(obs_data, date <= as.Date(new_date))
   obs_data = arrange(obs_data, date)
 
+  # don't need this b/c we've already calculated it for surrogate_preds
   #obs_df = make_obs_data(obs_data, obs_depth=1, lookback = 4)
   
-  train_dates[length(train_dates)+1] = new_date
+  # add new date to train dates
+  all_files = list.files(glm_path)
+
+  # update training dates to include new_date
+  all_dates = sub(".*_(.*).csv", "\\1", all_files)
+  end_idx = which(all_dates == new_date)
+  train_dates = all_dates[1:end_idx]
+  print(paste("length of train dates: ", length(train_dates)))
 
   horizon=1:30
   obs_List = list()
@@ -158,6 +174,7 @@ make_bias_horizon_datasets_validation = function(train_dates,
   newdf = newdf %>% dplyr::select(DOY, Depth ,Horizon, Temp_covar, start_date, end_date, temp_obs, bias)
 
   newdf = newdf[complete.cases(newdf), ]
+  #print(paste("SAVING NEW BIAS DATASET for date:" , new_date))
   write.csv(newdf, file.path(surrogate_dir, "Bias_dataset_validation.csv"))
   
 }
@@ -188,7 +205,7 @@ make_obs_testing_data = function(new_date, obs_depth=1, lookback = 4, obs_data){
     # add DOY so we can merge w/ surrogate data
     temp_file$DOY = start_DOY
     temp_file$Horizon = h
-    # temp_file$Temp_covar = start_date_obs_temp
+    
     obs_List[[counter]] = temp_file  
     counter = counter + 1
   }
