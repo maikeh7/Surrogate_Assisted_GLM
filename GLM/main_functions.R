@@ -9,12 +9,13 @@ library(reshape2)
 
 source("aux_functions.R")
 source("get_GLM_sims.R")
-###################################################################################
+##############################################################################################
 # main() will loop over 31 ensemble members and for each ensemble will run GLM:
 # extract met file, extract inflow/outflow files
-# create direcotry for sim, put input files in created dir called 'inputs'
+# create directory for that set of simulations, put input files in a diretory called 'inputs'
 # also includes a function called 'update_nml' that will update the nml file for
 # each NOAA ensemble member
+##############################################################################################
 
 main=function(start_date, stop_date=NULL,
      Kw = 0.87, 
@@ -124,7 +125,7 @@ main=function(start_date, stop_date=NULL,
     nml_file$time$start = mystart
     nml_file$time$stop = mystop
     # This saves one output per day at 00UTC!! This is what we want!! 
-    # it should not be anything other than 24
+    # NOTE: it should not be anything other than 24
     nml_file$output$nsave = 24 
     
     # update names of met/inflow/outflow...altho can leave out in/outflow b/c they never change....
@@ -180,17 +181,15 @@ main=function(start_date, stop_date=NULL,
   # delete the result files
   unlink(grep("*Results", list.files(), value = TRUE), recursive = TRUE)
 }
+
+
+
+
 lake_temps <- data.table::fread("https://s3.flare-forecast.org/targets/fcre_v2/fcre/fcre-targets-insitu.csv")
 obs_inflow <- data.table::fread("https://s3.flare-forecast.org/targets/fcre_v2/fcre/fcre-targets-inflow.csv")
-#biasdat = read.csv("bias_dat_forHetGP.csv")
-#biasdat$date = paste(biasdat$YEAR, biasdat$MONTH, biasdat$DAY, sep = "-")
-#biasdat$date = as.POSIXct(biasdat$date, tz = "UTC")
-# including 7 day spinup, start date should be 2020-10-02 or later
-#biasdat = filter(biasdat, date > as.POSIXct("2020-10-02", tz = "UTC"))
-#all_dates = unique(biasdat$date)
 
-#actual_dates = all_dates[1:97]
-#dates_char = as.character(actual_dates)
+
+# make training dates
 df = make_ymd()
 df2 = make_ymd()
 df3 = make_ymd()
@@ -215,10 +214,9 @@ dates23 = paste(df4$YEAR, df4$MONTH, df4$DAY, sep = "-")
 mydates = as.character(as.Date(dates23, tz = "UTC"))
 dates_char23 = mydates[!is.na(mydates)]
 
-#which(dates_char20 == "2021-01-09")
-#dates_char20 = dates_char20[277:366]
 
 alldates = c(dates_char20, dates_char21, dates_char22, dates_char23)
+
 # the date after last date of GLM sims
 myidx = which(alldates== "2023-03-30")
 # get current date
@@ -227,7 +225,6 @@ end_idx = which(alldates == cur_date)
 alldates = alldates[myidx:end_idx]
 #alldates = "2021-01-30"
 
-#for (i in 1:2){
 for(i in 1:length(alldates)){
   main(start_date = alldates[i])
 }
