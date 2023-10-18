@@ -1,4 +1,18 @@
-
+#' this function fits a GP surrogate to bias data
+#'
+#' @param method "Average"
+#' @param lookback 4
+#' @param obs_depth 1
+#' @param horizon_dir  
+#' @param surrogate_dir 
+#' @param persist_dir 
+#' @param model_type "GLM" or "PERSISTENCE"
+#'
+#' @return data.frames containing the model fit object (bias_fit.Rds) and predictions/sd's (bias_surrogate.Rds)
+#' are saved to surrogate_dir
+#' @export
+#'
+#' @examples
 fit_bias_surrogate = function(method="Average",
                               lookback=4,
                               obs_depth=1,
@@ -32,7 +46,7 @@ fit_bias_surrogate = function(method="Average",
     pred_times = as.matrix(pred_times[,1:4])
   }
   
-  if (model_type == "persistence"){
+  if (model_type == "PERSISTENCE"){
     #print("persistence model surrogate")
     # note that for the persistence model GP, horizon = T, but T ranges from -7 to 30
     bias_data = readRDS(file.path(persist_dir, "PersistenceDF.Rds"))
@@ -116,13 +130,13 @@ fit_bias_surrogate = function(method="Average",
   if (model_type == "GLM"){
     saveRDS(vecDF, file.path(surrogate_dir, "bias_surrogate.Rds"))
   }
-  if (model_type == "persistence"){
+  if (model_type == "PERSISTENCE"){
     saveRDS(vecDF, file.path(surrogate_dir, "bias_surrogate_persist.Rds"))
   }
 }
 
 ###############################################################################################
-### fit by depth
+### fit by depth--we do not recommend this
 ###############################################################################################
 fit_bias_surrogate_byDepth = function(method="Average",
                               lookback=4,
@@ -165,8 +179,6 @@ fit_bias_surrogate_byDepth = function(method="Average",
   bias_sd = sd(bias_data$bias)
   bias_normalized = (bias_data$bias - bias_mean ) / bias_sd
   
-  # standardize inputs to be in [0,1]
-  # this is just so you know what I did! And also so I remember...
   # standardize inputs to be in [0,1]
   DOY_range = range(bias_data$DOY)
   horizon_range = range(bias_data$Horizon)
@@ -220,48 +232,3 @@ fit_bias_surrogate_byDepth = function(method="Average",
   saveRDS(vecDF, file.path(surrogate_dir, "bias_surrogate.Rds"))
 }
 
-# this is how I constructed observed data
-# this is the observed data NOTE THAT IT IS 00UTC--NOT AVERAGED!!
-#ymd = make_ymd()
-#lake_temps <- data.table::fread("https://s3.flare-forecast.org/targets/fcre_v2/fcre/fcre-targets-insitu.csv")
-#lake_temps = dplyr::filter(lake_temps, variable == "temperature")
-#lake_temps = filter(lake_temps, depth %in% 0:9)
-#newdate = strsplit(as.character(lake_temps$datetime), "-")
-#head(newdateDF)
-#newdateDF = as.data.frame(do.call("rbind", newdate))
-#names(newdateDF) = c("YEAR", "MONTH", "DAY")
-#newdateDF$MONTH = sub("^0", "", newdateDF$MONTH)
-#newdateDF$DAY = sub("^0", "", newdateDF$DAY)
-#newdateDF$YEAR = as.numeric(newdateDF$YEAR)
-#newdateDF$MONTH = as.numeric(newdateDF$MONTH)
-#newdateDF$DAY = as.numeric(newdateDF$DAY)
-#lake_temps = cbind(lake_temps, newdateDF)
-#lake_temps = dplyr::select(lake_temps, datetime, depth, observation, YEAR, MONTH, DAY)
-#lake_temps = right_join(lake_temps, ymd, by = c("MONTH", "DAY"))
-#lake_temps = lake_temps[complete.cases(lake_temps), ]
-#colnames(lake_temps)[2] = "depth_int"
-#colnames(lake_temps)[3] = "temp_obs"
-#lake_temps = dplyr::select(lake_temps, YEAR, MONTH, DAY, depth_int, temp_obs, DOY , datetime)
-
-# this is how I constructed observed data
-# this is the observed data NOTE THAT IT IS 00UTC--NOT AVERAGED!!
-#ymd = make_ymd()
-#lake_temps <- data.table::fread("https://s3.flare-forecast.org/targets/fcre_v2/fcre/fcre-targets-insitu.csv")
-#lake_temps = dplyr::filter(lake_temps, variable == "temperature")
-#lake_temps = filter(lake_temps, depth %in% 0:9)
-#newdate = strsplit(as.character(lake_temps$datetime), "-")
-#head(newdateDF)
-#newdateDF = as.data.frame(do.call("rbind", newdate))
-#names(newdateDF) = c("YEAR", "MONTH", "DAY")
-#newdateDF$MONTH = sub("^0", "", newdateDF$MONTH)
-#newdateDF$DAY = sub("^0", "", newdateDF$DAY)
-#newdateDF$YEAR = as.numeric(newdateDF$YEAR)
-#newdateDF$MONTH = as.numeric(newdateDF$MONTH)
-#newdateDF$DAY = as.numeric(newdateDF$DAY)
-#lake_temps = cbind(lake_temps, newdateDF)
-#lake_temps = dplyr::select(lake_temps, datetime, depth, observation, YEAR, MONTH, DAY)
-#lake_temps = right_join(lake_temps, ymd, by = c("MONTH", "DAY"))
-#lake_temps = lake_temps[complete.cases(lake_temps), ]
-#colnames(lake_temps)[2] = "depth_int"
-#colnames(lake_temps)[3] = "temp_obs"
-#lake_temps = dplyr::select(lake_temps, YEAR, MONTH, DAY, depth_int, temp_obs, DOY , datetime)

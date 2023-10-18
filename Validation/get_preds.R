@@ -1,3 +1,6 @@
+
+# function to get in-sample predictions and construct bias-corrected GLM surrogate
+# the predictions for the bias-corrected surrogate are saved in results_dir as 'preds_all_training.Rds'
 get_preds = function(results_dir, surrogate_dir){
   GLM_fit = readRDS(file.path(surrogate_dir, "GLM_Surrogate_SK.Rds")) 
   Bias_fit =  readRDS(file.path(surrogate_dir, "bias_surrogate.Rds")) 
@@ -16,6 +19,10 @@ get_preds = function(results_dir, surrogate_dir){
   
 }
 
+# a function to generate predictions (forecast) for a new reference date (new_date)
+# with a bias-corrected surrogate, which is also constructed in this function
+# predictions for new_date are saved to results_dir as preds<new_date>.csv
+# new_date is a character vector formatted as YYY-MM-DD
 get_preds_valid = function(new_date, results_dir, surrogate_dir, obs_data){
   GLM_fit = readRDS(file.path(surrogate_dir, "GLM_Surrogate_SK.Rds")) 
   Bias_fit =  readRDS(file.path(surrogate_dir, "bias_surrogate.Rds")) 
@@ -57,6 +64,7 @@ get_preds_valid = function(new_date, results_dir, surrogate_dir, obs_data){
   
 }
 
+# get predictions for when model_type is PERSISTENCE
 get_preds_valid_persistence = function(new_date,
                                        results_dir,
                                        surrogate_dir,
@@ -100,7 +108,3 @@ get_preds_valid_persistence = function(new_date,
   #write.csv(formatted, file.path(results_dir_formatted, paste0("preds_formatted", start_date, ".csv")))
   
 }
-
-#get_scores = function(test_data){
-  
-#}

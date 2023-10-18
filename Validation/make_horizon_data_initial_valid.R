@@ -1,8 +1,31 @@
-# spinup is days of spinup minus 1
-# so for a 7 day spinup, use spinup=6
 
-process_GLM_sims = function(obs_depth=1, method="Average",lookback=4,train_files, 
-                            train_end_date, glm_path, 
+
+#' Construct training data for GLM surrogate
+#' 
+
+#'
+#' @param obs_depth the depth at which the latent variable phi is calculated (it should be 1--phi is calculated as an 
+#' average over depths 0 and 1)
+#' @param method The method by which phi is calculated. 'Average' is the only accepted value.
+#' @param lookback The number of days over which the average should be taken to obtain phi (we recommend between 4 and 7)
+#' @param train_files character, The names of files for GLM forecasts in the training period 
+#' @param train_end_date character, the end of the training period, formatted as YYYY-MM-DD
+#' @param glm_path The directory in which GLM forecasts live
+#' @param horizon_dir The name of the directory that training data will be saved to
+#' @param obs_data Observed data, a csv file 
+#' @param spinup spinup is days of spinup minus 1 (so for a 7 day spinup, use spinup=6). We do not recommend using 
+#' any spinup and recommend a spinup value of 0.
+#'
+#' @return
+#' @export
+#'
+#' @examples
+process_GLM_sims = function(obs_depth=1, 
+                            method = "Average",
+                            lookback=4,
+                            train_files, 
+                            train_end_date,
+                            glm_path, 
                             horizon_dir = "HORIZON_TRAIN",
                             obs_data, 
                             spinup=0){
@@ -10,7 +33,10 @@ process_GLM_sims = function(obs_depth=1, method="Average",lookback=4,train_files
   # get rid of dates that occurred after training dates
   obs_data= filter(obs_data, date <= as.Date(train_end_date))
   obs_data = filter(obs_data, date >= as.Date("2020-09-01"))
-  # make the observed dataset 
+  
+  # make the observed dataset of reference dates and the corresponding
+  # value of 'phi' which is the average of the previous 4 dates before the 
+  # reference date. It is necessary for capturing year to year variability
   obs_df = make_obs_data(obs_data, obs_depth = 1, lookback = 4)
   
   horizon = 1:30
@@ -38,7 +64,7 @@ process_GLM_sims = function(obs_depth=1, method="Average",lookback=4,train_files
       }
       
       # get the temperature corresponding to start_date
-      # which will be the average of the PREVIOUS XX days
+      # which will be the average of the PREVIOUS 'lookback' days
       start_date_obs_temp = get_obs_temp(actual_start, obs_depth, obs_df)
       
       temp_file = filter(temp_file, date >= actual_start)
@@ -87,9 +113,25 @@ process_GLM_sims = function(obs_depth=1, method="Average",lookback=4,train_files
   
 }
 
-# checked
+#' Append data to training data for GLM surrogate for use in validation
+#'
+#' @param new_date character, formatted as YYYY-MM-DD, the new reference date at which a forecast is to be made
+#' @param method The method by which phi is calculated. 'Average' is the only accepted value.
+#' @param lookback The number of days over which the average should be taken to obtain phi (we recommend between 4 and 7)
+#' @param obs_depth the depth at which the latent variable phi is calculated (it should be 1--phi is calculated as an 
+#' average over depths 0 and 1)
+#' @param glm_path The directory in which GLM forecasts live
+#' @param horizon_dir The name of the directory that training data will be saved to
+#' @param obs_data Observed data, a csv file 
+#' @param spinup spinup is days of spinup minus 1 (so for a 7 day spinup, use spinup=6). We do not recommend using 
+#' any spinup and recommend a spinup value of 0.
+#'
+#' @return
+#' @export
+#'
+#' @examples
 append_GLM_data = function(new_date, method="Average", lookback=4, obs_depth=1,
-                             glm_path, horizon_dir, obs_data, spinup=6){
+                             glm_path, horizon_dir, obs_data, spinup=0){
   ymd = make_ymd()
   
   obs_data = filter(obs_data, date >= as.Date("2020-09-01"))

@@ -1,15 +1,22 @@
-
-
-#####################################################################################################
-# fit surrogate to GLM simulations using stochastic kriging
-# fit mean and variance separately, then combine
-# note that in the calculation of variance, we divide by 30 b/c there are 30
-# reps of GLM sims for each combo of depth,doy,horizon, temp covariate
-# this is to ensure that we are not including the nugget, which would give us error bars that are too wide
-#####################################################################################################
-
+#' fit surrogate to GLM simulations using stochastic kriging
+#' fit mean and variance separately, then combine
+#'
+#' @param method "Average"
+#' @param lookback 4
+#' @param obs_depth 1
+#' @param horizon_dir  
+#' @param surrogate_dir 
+#' @param num_reps number of effective replicates to divide variance by. We checked using the number of 
+#' replicates in the data, but using a larger number of replicates does not result in accurate UQ. 
+#' We recommend using num_reps = 1
+#'
+#' @return Model fit for the variance is saved as SK_Variance_fit.Rds in surrogate_dir. Model fit for the mean 
+#' is saved as SK_Mean_fit.Rds. The GLM surrogate is saved as GLM_Surrogate_SK.Rds in surrogate_dir
+#' @export
+#'
+#' @examples
 fit_GLM_surrogate=function(method="Average", lookback=4, obs_depth=1,horizon_dir, surrogate_dir,
-                           num_reps = 31){
+                           num_reps = 1){
   
   # make the training dataset
   biglist = list(length=30)

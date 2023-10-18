@@ -1,4 +1,10 @@
+########################
+# auxilary functions 
+########################
 
+
+# function to read in observed data
+# use update_observed_data() to construct observed dataset
 read_obs_data = function(){
   obs_data = read.csv("/home/maike/GP_surrogate_code/DATA/Bias_dataset/Observed_data.csv")
   obs_data$date = as.POSIXct(obs_data$datetime, tz = "UTC")
@@ -6,6 +12,8 @@ read_obs_data = function(){
   return(obs_data)
 }
 
+# function to read in preds from GLM surrogates
+# model_type is one of "GLM", "GLM_byDepth", or "PERSISTENCE"
 read_surrogate_preds= function(surrogate_dir, model_type){
   if (model_type == "GLM"){
     surrogate_preds = readRDS(file.path(surrogate_dir,"GLM_Surrogate_SK.Rds"))
@@ -15,7 +23,7 @@ read_surrogate_preds= function(surrogate_dir, model_type){
     surrogate_preds = readRDS(file.path(surrogate_dir,"GLM_Surrogate_SK.Rds"))
     return(surrogate_preds)
   }
-  if (model_type == "persistence"){
+  if (model_type == "PERSISTENCE"){
     surrogate_preds = readRDS(file.path(surrogate_dir,"PersistenceDF.Rds"))
     return(surrogate_preds)
   }
@@ -31,7 +39,9 @@ make_ymd = function(){
   ymd = data.frame(MONTH = MONTH, DAY = DAY, DOY = DOY)
 }
 
-
+# function to grab the value of phi, given actual_start (a reference date)
+# obs_df is the data.frame output by "make_obs_data"
+# obs_depth should be set to 1
 get_obs_temp = function(actual_start, obs_depth=1, obs_df){
   df1 = filter(obs_df, date == actual_start)
   while(nrow(df1) == 0){
@@ -47,6 +57,12 @@ get_obs_temp = function(actual_start, obs_depth=1, obs_df){
   return(mean(start_date_obs_temp$mean_temp))
 }
 
+# function that constructs a data.frame consisting of all reference
+# dates in the training period and the corresponding value of 
+# 'phi', which is the average of the lake temp at depths 0 and 1 at the 
+# the 'lookback' number of days before each 
+# reference date 
+# obs_depth should be 1 and lookback should be 4
 make_obs_data = function(obs_data, obs_depth=1, lookback = 4){
   d1 = filter(obs_data, depth_int %in% c(obs_depth,0))
   dates = unique(d1$date)
@@ -94,5 +110,5 @@ update_observed_data = function(){
   colnames(lake_temps)[3] = "temp_obs"
   lake_temps = lake_temps[ , c("YEAR", "MONTH", "DAY", "depth_int", "temp_obs", "DOY" , "datetime")]
   write.csv(lake_temps, "home/maike/GP_surrogate_code/DATA/Bias_dataset/Observed_data.csv")
-  write.csv(lake_temps, "C:/Users/Maike/Box Sync/DEEP_LEARNING/SurrogateModeling/Data/Observed_data.csv")
+  #write.csv(lake_temps, "C:/Users/Maike/Box Sync/DEEP_LEARNING/SurrogateModeling/Data/Observed_data.csv")
 }

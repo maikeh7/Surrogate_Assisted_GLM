@@ -2,7 +2,6 @@ library(data.table)
 library(lubridate)
 library(dplyr)
 source("SVecchia_Katzfussetal.R")
-#source("SVecchia_test.R")
 source("auxilary_functions_validation.R")
 source("fit_GLM_surrogate.R")
 source("fit_bias_surrogate.R")
@@ -10,6 +9,33 @@ source("make_horizon_data_initial_valid.R")
 source("make_bias_dataset_validation_new.R")
 source("get_preds.R")
 
+#' Main function for constructing training data for GLM and bias surrogates
+#' in Holthuijzen, Maike and Gramacy, Robert M., and Thomas, Quinn R., and 
+#' Carey, Cayelan C. "Synthesizing data products, mathematical models, and observational 
+#' measurements for lake temperature forecasting". Annals of Applied Statistics. (In preparation)
+#' 
+#' @param make_train_data If true, only training data is constructed (no validation takes place)
+#' @param glm_path file path to directory where GLM forecasts live (must be constructed using code in 'GLM' folder)
+#' @param train_end_date end date for training period
+#' @param validation_end_date end date for validation period (must be after train_end_date)
+#' @param horizon_dir Name of directory where training data for GLM surrogate will be placed (default is "HORIZON_TRAIN")
+#' @param surrogate_dir Name of directory where GP model fits will be saved (default is "SURROGATES")
+#' @param results_dir Name of directory where results will be saved (if GLM is selected as model_type,
+#' default is "RESULTS")
+#' @param persist_dir Name of directory where all results for persistence models will be saved 
+#' (if PERSISTENCE is selected as model_type, default is "RESULTS")
+#' @param model_type Either PERSISTENCE or GLM. PERSISTENCE will fit a linear model to the 7 days of observed data
+#' prior to a forecast. Predictions to further horizons are based on that linear model. A bias correction is also added.
+#' PERSISTENCE was used as testing in early versions. We do not recommend using it, as accuracy decreases quickly after
+#' horizon 1. Option 'GLM_byDepth' fits independend surrogates for each depth (we do not recommend this option).
+#' Option 'GLM' carries out the GP surrogate framework for lake temperature forecasting as described in the 
+#' paper above.
+#'
+#' @return
+#' @export
+#'
+#' @examples
+#' main(make_train_data = FALSE, model_type = "GLM")
 main = function(make_train_data = TRUE, 
             glm_path = "/home/maike/GP_surrogate_code/DATA/GLM_sims_NEW",
             train_end_date = "2022-06-11", #"2022-03-13"
@@ -64,6 +90,7 @@ main = function(make_train_data = TRUE,
   valid_files = all_files[(end_idx + 1):end_valid_idx]
   }
   
+  # read in observed data for FCR
   observed_data = read_obs_data()
   
   switch(model_type,
@@ -115,7 +142,8 @@ main = function(make_train_data = TRUE,
                    surrogate_dir, 
                    obs_data = observed_data)
   }else{
-  
+  # validation is carried out for all reference dates in test set
+  # validation simulates iterative forecasting (see paper for explanation)
   for (i in 1:length(valid_dates)){
     print(paste("working on validation date:", valid_dates[i]))
     
