@@ -8,7 +8,6 @@ source("fit_bias_surrogate.R")
 source("make_horizon_data_initial_valid.R")
 source("make_bias_dataset_validation_new.R")
 source("get_preds.R")
-
 #' Main function for constructing training data for GLM and bias surrogates
 #' in Holthuijzen, Maike and Gramacy, Robert M., and Thomas, Quinn R., and 
 #' Carey, Cayelan C. "Synthesizing data products, mathematical models, and observational 
@@ -27,7 +26,7 @@ source("get_preds.R")
 #' @param model_type Either PERSISTENCE or GLM. PERSISTENCE will fit a linear model to the 7 days of observed data
 #' prior to a forecast. Predictions to further horizons are based on that linear model. A bias correction is also added.
 #' PERSISTENCE was used as testing in early versions. We do not recommend using it, as accuracy decreases quickly after
-#' horizon 1. Option 'GLM_byDepth' fits independend surrogates for each depth (we do not recommend this option).
+#' horizon 1. Option 'GLM_byDepth' fits independent surrogates for each depth (we do not recommend this option).
 #' Option 'GLM' carries out the GP surrogate framework for lake temperature forecasting as described in the 
 #' paper above.
 #'
@@ -35,16 +34,18 @@ source("get_preds.R")
 #' @export
 #'
 #' @examples
-#' main(make_train_data = FALSE, model_type = "GLM")
+#' main(make_train_data = TRUE, model_type = "GLM") # constructs training data only
+#' maik(make_train_data = FALSE, model_type = "GLM") # for validation, uses previously constructed training data
 main = function(make_train_data = TRUE, 
-            glm_path = "/home/maike/GP_surrogate_code/DATA/GLM_sims_NEW",
+            glm_path = "Data/GLM_sims_NEW",
             train_end_date = "2022-06-11", #"2022-03-13"
             validation_end_date = "2023-06-11", #"2023-06-11"
             horizon_dir="HORIZON_TRAIN",
             surrogate_dir = "SURROGATES",
             results_dir = "RESULTS",
             persist_dir = "PERSISTENCE",
-            model_type = "GLM"
+            model_type = "GLM",
+            obs_dir = "Data/Observed_data.csv"
             ){
 
   mymodel = model_type

@@ -5,8 +5,8 @@
 
 # function to read in observed data
 # use update_observed_data() to construct observed dataset
-read_obs_data = function(){
-  obs_data = read.csv("/home/maike/GP_surrogate_code/DATA/Bias_dataset/Observed_data.csv")
+read_obs_data = function(obs_dir){
+  obs_data = read.csv(obs_dir)
   obs_data$date = as.POSIXct(obs_data$datetime, tz = "UTC")
   obs_data$X = NULL
   return(obs_data)
