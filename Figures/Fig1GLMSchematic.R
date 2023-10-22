@@ -3,7 +3,7 @@ library(ggplot2)
 library(viridisLite)
 
 # grab bias data for a HetGP fitted to 2021 GLM sims only
-biasdat = read.csv("Data/bias_dat_forHetGP.csv")
+biasdat = read.csv("..Data/bias_dat_forHetGP.csv")
 biasdat$X.1=NULL
 biasdat$X = NULL
 mycols = viridis(22)
