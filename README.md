@@ -14,6 +14,7 @@ First, clone this repository. Next, download the zipped folder containing all as
 * vecchia: contains the work from the "Vecchia-approximated deep Gaussian processes for computer experiments" paper
 
 ## References
+```
 @Preamble{ " \newcommand{\noop}[1]{} " }
 @article{holthuijzen2023Synthesizing,
          title = {Synthesizing data products, mathematical models, and observational measurements for lake temperature forecasting}, 
@@ -21,3 +22,4 @@ First, clone this repository. Next, download the zipped folder containing all as
          journal = {Annals of Applied Statistics},
          year = "\noop{2024}in preparation"
 }
+```
