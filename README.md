@@ -4,13 +4,13 @@ This repository contains all code for reproducing all datasets, analyses, and fi
 Maintainer: Maike Holthuijzen (mholthuijzen@alumni.uidaho.edu)
 
 ## IMPORTANT
-First, clone this repository. Next, download the zipped folder containing all associated data here: https://zenodo.org/uploads/10028017 into the directory in which the repository was downloaded. Unzip the Data folder and ensure that it is called "Data".
+First, clone this repository. Next, download the zipped folder containing all associated data here: https://zenodo.org/uploads/10028017 **into the repository directory**. Unzip the Data folder and ensure that it is called "Data". 
 
 ## Folder Organization
-* GLM: contains code for downloaded NOAA-GEFS forecasts and generating GLM ensemble forecasts
-* Figures: contains code for generating figures
-* Results: contains code for analyzing results and constructing competing models
-* Validation: contains code for running model validation
+* **GLM**: contains code for downloaded NOAA-GEFS forecasts and generating GLM ensemble forecasts
+* **Figures**: contains code for generating figures
+* **Results**: contains code for analyzing results and constructing competing models
+* **Validation**: contains code for running model validation
 
 ## References
 ```
