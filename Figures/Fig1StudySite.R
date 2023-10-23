@@ -7,11 +7,11 @@ library(sp)
 library(ggsn)
 library(ggplot2)
 
-bathy1 = st_read("..Data/506_9.shp")
-bathy2 = st_read("..Data/504_9.shp")
-bathy3 = st_read("..Data/502_9.shp")
-bathy4 = st_read("..Data/500_9.shp")
-bathy5 = st_read("..Data/498_9.shp")
+bathy1 = st_read("../Data/506_9.shp")
+bathy2 = st_read("../Data/504_9.shp")
+bathy3 = st_read("../Data/502_9.shp")
+bathy4 = st_read("../Data/500_9.shp")
+bathy5 = st_read("../Data/498_9.shp")
 
 mycols = c("#eff3ff", "#bdd7e7","#6baed6","#3182bd","#08519c")
 

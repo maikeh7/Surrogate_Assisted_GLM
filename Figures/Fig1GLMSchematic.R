@@ -1,12 +1,10 @@
 # make Figure 1 (Right) GLM bias/surrogate schematic
 library(ggplot2)
-library(viridisLite)
 
 # grab bias data for a HetGP fitted to 2021 GLM sims only
-biasdat = read.csv("..Data/bias_dat_forHetGP.csv")
+biasdat = read.csv("../Data/bias_dat_forHetGP.csv")
 biasdat$X.1=NULL
 biasdat$X = NULL
-mycols = viridis(22)
 
 # function to make MONTH/DAY/DOY dataframe for merging w/ other datasets
 make_ymd = function(){
@@ -19,7 +17,7 @@ make_ymd = function(){
 ymd = make_ymd()
 
 # preds from a HetGP fitted to 2021 GLM sims
-preds = readRDS("Data/Surrogate_2021OnlyPreds.Rds")
+preds = readRDS("../Data/Surrogate_2021OnlyPreds.Rds")
 pred_times = cbind(rep(1:366, 10), rep(0:9, each=366))
 mean_trend = preds$mean
 temp_sd = sqrt(preds$sd2 + preds$nugs)
@@ -31,7 +29,7 @@ hetDF$Upper = qnorm(0.95, hetDF$Mean, hetDF$SD)
 bdat = filter(biasdat, YEAR == 2021)
 
 # read in bias surrogate for 2021 (fit to observed - surrogate)
-bias_2021 = readRDS("Data/Surrogate_bias_2021_Preds.Rds")
+bias_2021 = readRDS("../Data/Surrogate_bias_2021_Preds.Rds")
 pred_times = cbind(rep(1:366, 10), rep(0:9, each=366))
 mean_trend = bias_2021$mean
 temp_sd = sqrt(bias_2021$sd2 + bias_2021$nugs)
@@ -59,9 +57,8 @@ hetDF$Date = as.POSIXct(as.Date(hetDF$Date), tz = "UTC")
 
 
 mycols =  c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
-
 plot_cols = mycols[c(1,2 ,6,8)]
-library(ggplot2)
+
 ggplot(data = filter(bdat, depth_int == 6), aes(x = Date, y = temp_glm, col = "GLM")) +
   geom_line(linewidth = 1) +
   geom_line(data = filter(bdat, depth_int==6), aes(x = Date, y = temp_obs, col = "Observed"),
@@ -90,6 +87,8 @@ ggplot(data = filter(bdat, depth_int == 6), aes(x = Date, y = temp_glm, col = "G
   theme(legend.position = c(0.24, 0.89), legend.text=element_text(size=18),
         legend.background=element_rect(fill = alpha("white", 0.1))) +
   ylab("Water temperature C") 
-ggsave("PlotForCayelan.png", height = 1800, width = 2400, units="px")
+#ggsave("Fig1GLMSchematic.png", height = 1800, width = 2400, units="px")
+
+
 breaks = c("BC_Surrogate", "Surrogate", "Observed", "GLM")
 labels = c("BC_Surrogate", "Surrogate", "Observed", "GLM")

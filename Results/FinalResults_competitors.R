@@ -140,7 +140,7 @@ library(ggpubr)
 library(ggplot2)
 
 # directory for GLM forecasts
-horizon_dir = "..Data/HORIZON_TRAIN"
+horizon_dir = "../Data/HORIZON_TRAIN"
 method = "Average"
 lookback = 4
 obs_depth = 1
@@ -163,10 +163,10 @@ bigdf = filter(bigdf, Depth == 1)
 bigdf$V1=NULL
 head(bigdf)
 
-biasfit = readRDS("..Data/SURROGATES/bias_surrogate.Rds")
-obs_data = read.csv("..Data/SURROGATES/Bias_dataset_validation.csv")
+biasfit = readRDS("../Data/SURROGATES/bias_surrogate.Rds")
+obs_data = read.csv("../Data/SURROGATES/Bias_dataset_validation.csv")
 
-ogp = read.csv("..Data/Observed_hetGP_withOb_TESTONLY.csv")
+ogp = read.csv("../Data/Observed_hetGP_withOb_TESTONLY.csv")
 
 # merge w/ observed GP (test only)
 ogp = filter(ogp, Depth == 1)

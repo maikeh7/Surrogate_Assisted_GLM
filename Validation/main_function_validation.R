@@ -47,7 +47,7 @@ main = function(make_train_data = TRUE,
             results_dir = "RESULTS",
             persist_dir = "PERSISTENCE",
             model_type = "GLM",
-            obs_dir = "..Data/Observed_data.csv"
+            obs_dir = "../Data/Observed_data.csv"
             ){
 
   mymodel = model_type

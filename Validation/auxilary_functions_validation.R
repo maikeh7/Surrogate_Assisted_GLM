@@ -109,6 +109,6 @@ update_observed_data = function(){
   colnames(lake_temps)[2] = "depth_int"
   colnames(lake_temps)[3] = "temp_obs"
   lake_temps = lake_temps[ , c("YEAR", "MONTH", "DAY", "depth_int", "temp_obs", "DOY" , "datetime")]
-  write.csv(lake_temps, "home/maike/GP_surrogate_code/DATA/Bias_dataset/Observed_data.csv")
+  write.csv(lake_temps, "../Data/Observed_data.csv")
   #write.csv(lake_temps, "C:/Users/Maike/Box Sync/DEEP_LEARNING/SurrogateModeling/Data/Observed_data.csv")
 }
