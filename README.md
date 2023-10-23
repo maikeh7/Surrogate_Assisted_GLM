@@ -11,7 +11,6 @@ First, clone this repository. Next, download the zipped folder containing all as
 * Figures: contains code for generating figures
 * Results: contains code for analyzing results and constructing competing models
 * Validation: contains code for running model validation
-* vecchia: contains the work from the "Vecchia-approximated deep Gaussian processes for computer experiments" paper
 
 ## References
 ```
