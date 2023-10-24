@@ -22,26 +22,27 @@ source("get_preds.R")
 #' @param results_dir Name of directory where results will be saved (if GLM is selected as model_type,
 #' default is "RESULTS")
 #' @param persist_dir Name of directory where all results for persistence models will be saved 
-#' (if PERSISTENCE is selected as model_type, default is "RESULTS")
+#' (if PERSISTENCE is selected as model_type, default is "PERSISTENCE")
 #' @param obs_dir Complete file path to observed data 
 #' @param model_type string vector, either "PERSISTENCE" or "GLM" or "GLM_byDepth" (
-#' We recommend always using "GLM" as that is the option implemented in the paper). PERSISTENCE will fit a linear model to the 7 days of observed data
+#' We recommend always using "GLM" as that is the option implemented in the paper). PERSISTENCE will fit a linear 
+#' model to the 7 days of observed data
 #' prior to a forecast. Predictions to further horizons are based on that linear model. A bias correction is also added.
-#' PERSISTENCE was used as testing in early versions. WE do not recommend using PERSISTENCE, as accuracy decreases quickly after
-#' horizon 1. Option 'GLM_byDepth' fits independent surrogates for each depth (we do not recommend this option).
-#' Option 'GLM' carries out the GP surrogate framework for lake temperature forecasting as described in the 
-#' paper above.
+#' PERSISTENCE was used as testing in early versions. WE do not recommend using PERSISTENCE, as accuracy decreases
+#' quickly after
+#' horizon 1. Option 'GLM_byDepth' fits independent surrogates for each depth (this was included for initial testing;
+#' we do not recommend this option).
 #'
 #' @return
 #' @export
 #'
 #' @examples
-#' main(make_train_data = TRUE, model_type = "GLM") # constructs training data only
-#' maik(make_train_data = FALSE, model_type = "GLM") # for validation, uses previously constructed training data
+#' main(make_train_data = TRUE, model_type = "GLM") # constructs initial training data only
+#' main(make_train_data = FALSE, model_type = "GLM") # carries out validation, uses previously constructed training data
 main = function(make_train_data = TRUE, 
             glm_path = "..Data/GLM_sims_NEW",
-            train_end_date = "2022-06-11", #"2022-03-13"
-            validation_end_date = "2023-06-11", #"2023-06-11"
+            train_end_date = "2022-06-11", 
+            validation_end_date = "2023-06-11", 
             horizon_dir="HORIZON_TRAIN",
             surrogate_dir = "SURROGATES",
             results_dir = "RESULTS",
@@ -284,7 +285,7 @@ main = function(make_train_data = TRUE,
       }
     }
   },
-  persistence = {
+  PERSISTENCE = {
   print("persistence model")
     make_persistence_data(obs_depth=1,
                           method="Average",
@@ -330,5 +331,7 @@ main = function(make_train_data = TRUE,
   
 }
 
-main(make_train_data = FALSE, model_type = "GLM")
+# IMPORTANT: before validation can commence, initial training data must be constructed (use make_train_data = TRUE)
+# After training data is constructed, use make_train_data = FALSE
+main(make_train_data = TRUE, model_type = "GLM")
 

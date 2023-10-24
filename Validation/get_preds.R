@@ -1,6 +1,13 @@
-
+#########################################################################################################
 # function to get in-sample predictions and construct bias-corrected GLM surrogate
 # the predictions for the bias-corrected surrogate are saved in results_dir as 'preds_all_training.Rds'
+##########################################################################################################
+
+#' Obtain (in-sample) predictions from the bias-corrected GLM surrogate
+#'
+#' @param results_dir directory to which results should be saved
+#' @param surrogate_dir directory containing GLM surrogate and bias GP fits
+#'
 get_preds = function(results_dir, surrogate_dir){
   GLM_fit = readRDS(file.path(surrogate_dir, "GLM_Surrogate_SK.Rds")) 
   Bias_fit =  readRDS(file.path(surrogate_dir, "bias_surrogate.Rds")) 
@@ -18,12 +25,24 @@ get_preds = function(results_dir, surrogate_dir){
   saveRDS(GLM_fit, file.path(results_dir, paste0("preds_all_training.Rds")))
   
 }
-
+########################################################################################
 # a function to generate predictions (forecast) for a new reference date (new_date)
 # with a bias-corrected surrogate, which is also constructed in this function
 # predictions for new_date are saved to results_dir as preds<new_date>.csv
 # new_date is a character vector formatted as YYY-MM-DD
-get_preds_valid = function(new_date, results_dir, surrogate_dir, obs_data){
+#######################################################################################
+
+#' Obtain out of sample forecasts from the bias-corrected GLM surrogate
+#'
+#' @param new_date character string of reference date on which a forecast is to start, formatted as YYYY-MM-DD
+#' @param results_dir directory to which results should be saved
+#' @param surrogate_dir directory containing GLM surrogate and bias GP fits
+#' @param obs_data observed data
+#'
+get_preds_valid = function(new_date,
+                           results_dir, 
+                           surrogate_dir,
+                           obs_data){
   GLM_fit = readRDS(file.path(surrogate_dir, "GLM_Surrogate_SK.Rds")) 
   Bias_fit =  readRDS(file.path(surrogate_dir, "bias_surrogate.Rds")) 
   GLM_fit = arrange(GLM_fit, DOY, Depth, Horizon, Temp_covar)
@@ -46,21 +65,8 @@ get_preds_valid = function(new_date, results_dir, surrogate_dir, obs_data){
                   Mean, SD_SK, HetLower, HetUpper)
   
   preds_df = right_join(preds_df, obs_test_data, by = c("DOY", "Depth", "Horizon", "start_date"))
-  
-  # start_date = preds_df$start_date[1]
-  # 
-  # formatted = data.frame(model_id = "Surrogate", 
-  #                        datetime = preds_df$start_date + lubridate::days(preds_df$Horizon),
-  #                        reference_datetime = preds_df$start_date,
-  #                        site_id = "FCR",
-  #                        family = "Gaussian",
-  #                        parameter= preds_df$Depth,
-  #                        variable = "temperature",
-  #                        prediction = preds_df$BC_mean 
-  #                        )
 
   write.csv(preds_df, file.path(results_dir, paste0("preds", start_date, ".csv")))
-  #write.csv(formatted, file.path(results_dir_formatted, paste0("preds_formatted", start_date, ".csv")))
   
 }
 
@@ -105,6 +111,5 @@ get_preds_valid_persistence = function(new_date,
   preds_df = right_join(preds_df, obs_test_data, by = c("DOY", "Depth", "Horizon", "start_date"))
 
   write.csv(preds_df, file.path(results_dir, paste0("preds-persist", start_date, ".csv")))
-  #write.csv(formatted, file.path(results_dir_formatted, paste0("preds_formatted", start_date, ".csv")))
   
 }

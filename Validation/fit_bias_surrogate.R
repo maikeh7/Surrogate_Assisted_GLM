@@ -1,12 +1,15 @@
-#' this function fits a GP surrogate to bias data
+#' this function fits a GP to bias data via Vecchia approximation (no stochastic kriging)
 #'
-#' @param method "Average"
-#' @param lookback 4
-#' @param obs_depth 1
-#' @param horizon_dir  
-#' @param surrogate_dir 
-#' @param persist_dir 
-#' @param model_type "GLM" or "PERSISTENCE"
+#' @param method method to obtain value of phi: "Average" (denotes average of 4 days of observed data prior to a given 
+#' reference date). Do not change.
+#' @param lookback 4 (do not change)
+#' @param obs_depth 1 (do not change)
+#' @param horizon_dir directory where train data lives (default is HORIZON_TRAIN) 
+#' @param surrogate_dir directory where all surrogates will be saved to (default is SURROGATES)
+#' @param persist_dir directory where PERSISTENCE results will be saved to (if PERSISTENCE is selected as model_type,
+#' default is PERSISTENCE)
+#' @param model_type character vector denoting which model to fit "GLM" (recommended, used in paper) or 
+#' ("PERSISTENCE" or "GLM_byDepth" , not recommended)
 #'
 #' @return data.frames containing the model fit object (bias_fit.Rds) and predictions/sd's (bias_surrogate.Rds)
 #' are saved to surrogate_dir

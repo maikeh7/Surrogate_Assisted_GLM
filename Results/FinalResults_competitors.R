@@ -163,6 +163,7 @@ bigdf = filter(bigdf, Depth == 1)
 bigdf$V1=NULL
 head(bigdf)
 
+# get the bias GP resulting from validation run
 biasfit = readRDS("../Data/SURROGATES/bias_surrogate.Rds")
 obs_data = read.csv("../Data/SURROGATES/Bias_dataset_validation.csv")
 
