@@ -28,6 +28,7 @@ d_names <- as_labeller(
     `3` = "3m",`4` = "4m", `5` = "5m",
     `6` = "6m", `7`= "7m", `8` = "8m", `9` = "9m"))
 
+# make plot
 smalldf = filter(bigdf, start_date == "2021-01-01")
 smalldf$ensemble_no = rep(1:31, 300)
 p1=ggplot(smalldf, aes(x = Horizon, y = Temp_C_00UTC, col = factor(ensemble_no))) +
