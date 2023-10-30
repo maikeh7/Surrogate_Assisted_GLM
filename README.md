@@ -6,6 +6,13 @@ Maintainer: Maike Holthuijzen (mholthuijzen@alumni.uidaho.edu)
 ## IMPORTANT
 First, clone this repository. Next, download the zipped folder containing all associated data here: https://zenodo.org/uploads/10028017 **into the repository directory**. Unzip the Data folder and ensure that it is called "Data". 
 
+Once you have cloned the respository and have saved the zipped data folder **in the same folder as the respository**, run these lines:
+```
+zipF = "Data.zip"
+outDir = "Data"
+unzip(zipF, exdir = outDir)
+```
+
 ## Folder Organization
 * **GLM**: contains code for downloaded NOAA-GEFS forecasts and generating GLM ensemble forecasts
 * **Figures**: contains code for generating figures
