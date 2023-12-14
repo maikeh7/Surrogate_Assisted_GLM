@@ -1,5 +1,6 @@
 # make Figure 1 (Right) GLM bias/surrogate schematic
 library(ggplot2)
+library(dplyr)
 
 # grab bias data for a HetGP fitted to 2021 GLM sims only
 biasdat = read.csv("../Data/bias_dat_forHetGP.csv")
@@ -18,6 +19,7 @@ ymd = make_ymd()
 
 # preds from a HetGP fitted to 2021 GLM sims
 preds = readRDS("../Data/Surrogate_2021OnlyPreds.Rds")
+head(preds)
 pred_times = cbind(rep(1:366, 10), rep(0:9, each=366))
 mean_trend = preds$mean
 temp_sd = sqrt(preds$sd2 + preds$nugs)
@@ -89,6 +91,109 @@ ggplot(data = filter(bdat, depth_int == 6), aes(x = Date, y = temp_glm, col = "G
   ylab("Water temperature C") 
 #ggsave("Fig1GLMSchematic.png", height = 1800, width = 2400, units="px")
 
-
 breaks = c("BC_Surrogate", "Surrogate", "Observed", "GLM")
 labels = c("BC_Surrogate", "Surrogate", "Observed", "GLM")
+
+# Stuff for 2D figure that I will add
+head(BiasDF)
+ggplot(data = filter(BiasDF, depth_int == 6), aes(x = DOY, y = Mean)) +
+  geom_line(linewidth = 1, col = "#009E73") +
+  geom_line(data= filter(BiasDF, depth_int == 6), aes(x = DOY, y = Lower), col = "#009E73",
+            linewidth = 0.8, linetype = "dashed") +
+  geom_line(data= filter(BiasDF, depth_int == 6), aes(x = DOY, y = Upper), col = "#009E73", 
+            linewidth = 0.8, linetype = "dashed") +
+  theme_bw() +
+  theme(text = element_text(size = 20, color = "black"),
+        axis.text = element_text(size = 14, color = "black"))  +
+  ylab("Bias C") 
+ggsave("Bias1D.png", height = 1800, width = 2400, units="px")
+
+head(hetDF)
+dat = filter(hetDF, DOY == 240)
+df2 = hetDF
+df3 = BiasDF
+
+x = df2$depth_int
+y = df2$DOY
+z = df2$BC_mean
+z2 = df2$SD_SK
+
+head(df2)
+range(preds)
+preds=df2$Mean
+predsbias = df3$Mean
+upperPI = df3$Upper
+lowerPI = df3$Lower
+
+depth = rep(0:9, each = 366)
+mydepths = 0:9
+
+df_mean =data.frame(dummy=rep(0,366))
+for (i in 1:length(mydepths)){
+  idx = which(depth == mydepths[i])
+  temps = preds[idx]
+  df_mean=cbind(df_mean, temps)
+}
+head(df_mean)
+df_mean$dummy=NULL
+colnames(df_mean) = paste("d", seq(0:9), sep = "")
+
+
+df_biasmean =data.frame(dummy=rep(0,366))
+depth = rep(0:9, each = 366)
+mydepths = 0:9
+for (i in 1:length(mydepths)){
+  idx = which(depth == mydepths[i])
+  temps = predsbias[idx]
+  df_biasmean=cbind(df_biasmean, temps)
+}
+head(df_biasmean)
+df_biasmean$dummy=NULL
+colnames(df_biasmean) = paste("d", seq(0:9), sep = "")
+
+
+df_upper =data.frame(dummy=rep(0,366))
+depth = rep(0:9, each = 366)
+mydepths = 0:9
+for (i in 1:length(mydepths)){
+  idx = which(depth == mydepths[i])
+  temps = upperPI[idx]
+  df_upper=cbind(df_upper, temps)
+}
+head(df_upper)
+head(df_mean)
+df_upper$dummy=NULL
+colnames(df_upper) = paste("d", seq(0:9), sep = "")
+
+df_lower =data.frame(dummy=rep(0,366))
+depth = rep(0:9, each = 366)
+mydepths = 0:9
+for (i in 1:length(mydepths)){
+  idx = which(depth == mydepths[i])
+  temps = lowerPI[idx]
+  df_lower=cbind(df_lower, temps)
+}
+head(df_lower)
+df_lower$dummy=NULL
+colnames(df_lower) = paste("d", seq(0:9), sep = "")
+
+map2color<-function(x,pal,limits=NULL){
+  if(is.null(limits)) limits=range(x)
+  pal[findInterval(x,seq(limits[1],limits[2],length.out=length(pal)+1), all.inside=TRUE)]
+}
+range(df_biasmean)
+biascol= map2color(as.matrix(df_biasmean), viridis(100), limits = c(-6,3))
+meancol= map2color(as.matrix(df), viridis(100), limits = c(12,25))
+
+
+persp3d(x = 1:366, y = 0:9, as.matrix(df_mean), color = meancol, xlab = "DOY", ylab = "Depth", 
+        zlab = "Mean (C)", alpha=0.95)
+rgl.snapshot('3dplotMean.png', fmt = 'png')
+
+persp3d(x = 1:366, y = 0:9, as.matrix(df_biasmean), color = biascol, xlab = "DOY", ylab = "Depth", 
+        zlab = "Bias(C)", alpha = 0.95)
+persp3d(x = 1:366, y = 0:9, as.matrix(df_upper), color = "red", add = TRUE, alpha = .5)
+persp3d(x = 1:366, y = 0:9, as.matrix(df_lower), color = "red", add = TRUE, alpha =.5)
+rgl.snapshot('3dplotBiasNOPI.png', fmt = 'png')
+rgl.snapshot('3dSD.png', fmt = 'png')
+
