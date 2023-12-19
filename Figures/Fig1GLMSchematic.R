@@ -2,6 +2,9 @@
 library(ggplot2)
 library(dplyr)
 
+library(rgl)
+library(viridis)
+
 # grab bias data for a HetGP fitted to 2021 GLM sims only
 biasdat = read.csv("../Data/bias_dat_forHetGP.csv")
 biasdat$X.1=NULL
@@ -108,8 +111,8 @@ ggplot(data = filter(BiasDF, depth_int == 6), aes(x = DOY, y = Mean)) +
   ylab("Bias C") 
 ggsave("Bias1D.png", height = 1800, width = 2400, units="px")
 
-head(hetDF)
-dat = filter(hetDF, DOY == 240)
+## Make figure 5 (2D surface)
+
 df2 = hetDF
 df3 = BiasDF
 
@@ -181,15 +184,16 @@ map2color<-function(x,pal,limits=NULL){
   if(is.null(limits)) limits=range(x)
   pal[findInterval(x,seq(limits[1],limits[2],length.out=length(pal)+1), all.inside=TRUE)]
 }
-range(df_biasmean)
+
 biascol= map2color(as.matrix(df_biasmean), viridis(100), limits = c(-6,3))
-meancol= map2color(as.matrix(df), viridis(100), limits = c(12,25))
+meancol= map2color(as.matrix(df_mean), viridis(100), limits = c(12,25))
 
-
+par3d(cex=2.0)
 persp3d(x = 1:366, y = 0:9, as.matrix(df_mean), color = meancol, xlab = "DOY", ylab = "Depth", 
         zlab = "Mean (C)", alpha=0.95)
 rgl.snapshot('3dplotMean.png', fmt = 'png')
 
+par3d(cex=2.0)
 persp3d(x = 1:366, y = 0:9, as.matrix(df_biasmean), color = biascol, xlab = "DOY", ylab = "Depth", 
         zlab = "Bias(C)", alpha = 0.95)
 persp3d(x = 1:366, y = 0:9, as.matrix(df_upper), color = "red", add = TRUE, alpha = .5)
