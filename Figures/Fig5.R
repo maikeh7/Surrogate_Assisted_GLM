@@ -63,6 +63,7 @@ plot1 = ggplot(smalldf, aes(x = Horizon, y = Temp_C_00UTC, col = "GLM", group = 
   geom_line(data=pred_sub, aes(x = Horizon, y = HetUpper), linetype = "dashed", linewidth = 1.1, col = "#D55E00") +
   #facet_wrap(~factor(start_date)) + 
   ylab("Temp (°C)") +
+  xlab("Horizon (days)") +
   geom_point(data=obs_sub, aes(x = Horizon, y = temp_obs, col = "Observations" ))+
   
   geom_point(data=obs_sub, aes(x = Horizon, y = bias, col = "bias")) +
@@ -86,15 +87,16 @@ plot1 = ggplot(smalldf, aes(x = Horizon, y = Temp_C_00UTC, col = "GLM", group = 
   facet_wrap(~factor(start_date)) +
   labs(tag = "A")
 
-# WITH OGP
+# WITH OGP (do not use)
 plot1 = ggplot(smalldf, aes(x = Horizon, y = Temp_C_00UTC, col = "GLM", group = ensemble_no)) +
-  geom_line(alpha = .7) ++
+  geom_line(alpha = .7) +
   
   geom_line(data=pred_sub, aes(x = Horizon, y = Mean, col = "GPGLM"), linewidth = 1.1) +
   geom_line(data=pred_sub, aes(x = Horizon, y = HetLower), linetype = "dashed", linewidth = 1.1, col = "#D55E00") +
   geom_line(data=pred_sub, aes(x = Horizon, y = HetUpper), linetype = "dashed", linewidth = 1.1, col = "#D55E00") +
   #facet_wrap(~factor(start_date)) + 
   ylab("Temp (°C)") +
+  xlab("Horizon (days)") +
   geom_point(data=obs_sub, aes(x = Horizon, y = temp_obs, col = "Observations" ))+
   
   geom_point(data=obs_sub, aes(x = Horizon, y = bias, col = "bias")) +
@@ -132,6 +134,7 @@ plot2 = ggplot(smalldf, aes(x = Horizon, y = Temp_C_00UTC, col = "GLM", group = 
   geom_line(data=pred_sub, aes(x = Horizon, y = BCUpper), linetype = "dashed", linewidth = 1.1, col = "#E66100") +
   
   ylab("Temp (°C)") +
+  xlab("Horizon (days)") +
   geom_point(data=obs_sub, aes(x = Horizon, y = temp_obs, col = "Observations")) +
   
   theme_bw() +
@@ -148,4 +151,4 @@ plot2 = ggplot(smalldf, aes(x = Horizon, y = Temp_C_00UTC, col = "GLM", group = 
   labs(tag = "B")
 
 ggarrange(plot1, plot2, nrow = 2, ncol=1)
-#ggsave(file.path(plot_dir, "BCnoBCtrainperiodNOOGP.png"), width = 2400, height= 3200, units = "px")
+ggsave("BCnoBCtrainperiodNOOGP.png", width = 2400, height= 3200, units = "px")

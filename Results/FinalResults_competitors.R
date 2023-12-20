@@ -7,7 +7,7 @@ library(ggpubr)
 # Make figures 7 and 8
 
 # Results (raw) from GPBC
-results_folder = "..Data/RESULTS7.17"
+results_folder = "../Data/RESULTS7.17"
 results = list.files(results_folder)[grep("preds\\d{4}-\\d{2}-\\d{2}", list.files(results_folder))]
 
 resList = list(length = length(results))
@@ -26,11 +26,11 @@ get_proper_score=function(obs, y_mean, y_sd){
 }
 
 # Climatological model results (test ONLY--> train on train, predict on test set, these are OOB results only)
-obs_gp = read.csv("..Data/Observed_hetGP_withOb_TESTONLY.csv")
+obs_gp = read.csv("../Data/Observed_hetGP_withOb_TESTONLY.csv")
 obs_gp = obs_gp[complete.cases(obs_gp), ]
 
 # raw GLM forecasts for the test period
-glm2 = read.csv("..Data/rawGLM_withObs.csv")
+glm2 = read.csv("../Data/rawGLM_withObs.csv")
 glm2 = filter(glm2, date >= as.Date("2022-06-11") & date <= as.Date("2023-06-10"))
 
 ###########################################
@@ -176,11 +176,11 @@ ogp = dplyr::select(ogp, mean, Lower, Upper, date)
 colnames(ogp) = c("ObsGP_mean", "ObsGP_Lower", "ObsGP_Upper", "date")
 ogp$date = as.character(ogp$date)
 
-mydoy=45
+mydoy=50
 
 smalldf = filter(bigdf, DOY == mydoy)
 smalldf$start_date = as.character(smalldf$start_date)
-smalldf = filter(smalldf, start_date == "2023-02-14")
+smalldf = filter(smalldf, start_date == "2023-02-19")
 smalldf$ensemble_no = rep(1:31, 30)
 
 pred_sub = filter(allRes, DOY == mydoy, Depth == 1)
@@ -194,7 +194,7 @@ bias_sub$date = bias_sub$s_date + lubridate::days(bias_sub$Horizon)
 bias_sub$date = as.character(bias_sub$date)
 bias_sub2 = right_join(bias_sub, ogp, by = "date")
 
-obs_sub = filter(obs_sub, start_date == "2023-02-14")
+obs_sub = filter(obs_sub, start_date == "2023-02-19")
 
 #bias_sub2 = bias_sub2[complete.cases(bias_sub2), ]
 
@@ -212,6 +212,7 @@ plotgpglm =  ggplot(smalldf, aes(x = Horizon, y = Temp_C_00UTC, col = "GLM", gro
   geom_line(data=pred_sub, aes(x = Horizon, y = HetUpper), linetype = "dashed", linewidth = 1.1, col = "#D55E00") +
   #facet_wrap(~factor(start_date)) + 
   ylab("Temp (°C)") +
+  xlab("Horizon (days)") +
   geom_point(data=obs_sub, aes(x = Horizon, y = temp_obs, col = "Observations" ))+
   geom_line(data=bias_sub2, aes(x = Horizon, y = ObsGP_mean, col = "OGP"), linewidth = 1.1) +
   geom_line(data=bias_sub2, aes(x = Horizon, y = ObsGP_Lower), linetype = "dashed", linewidth = 1.1, col = "#999933") +
@@ -242,6 +243,7 @@ plotgpbc = ggplot(smalldf, aes(x = Horizon, y = Temp_C_00UTC, group = ensemble_n
   geom_line(data=bias_sub2, aes(x = Horizon, y = ObsGP_Upper), linetype = "dashed", linewidth = 1.1, col = "#999933") +
   
   ylab("Temp (°C)") +
+  xlab("Horizon (days)")+
   geom_point(data=obs_sub, aes(x = Horizon, y = temp_obs), col ="#503A9B") +
   
   theme_bw() +
@@ -266,8 +268,9 @@ plotgpbc = ggplot(smalldf, aes(x = Horizon, y = Temp_C_00UTC, group = ensemble_n
 ggarrange(plotgpglm, plotgpbc, common.legend = FALSE)
 #ggsave("BCnoBCTestperiodExample2.png")
 
-
-
+################
+# not important
+################
 obs = read_obs_data()
 myobs = filter(obs, date > as.Date("2020-09-10"))
 str(myobs)
