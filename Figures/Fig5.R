@@ -152,3 +152,145 @@ plot2 = ggplot(smalldf, aes(x = Horizon, y = Temp_C_00UTC, col = "GLM", group = 
 
 ggarrange(plot1, plot2, nrow = 2, ncol=1)
 ggsave("BCnoBCtrainperiodNOOGP.png", width = 2400, height= 3200, units = "px")
+
+###########################################################################################
+# Fit 2 NOAA plot
+###########################################################################################
+preds = readRDS("../Data/SURROGATES/preds_all_training.Rds")
+obs_data = read.csv("../Data/SURROGATES/Bias_dataset_validation.csv")
+
+mydoy=50
+smalldf = filter(bigdf, DOY == mydoy, Depth ==1)
+smalldf$ensemble_no = rep(1:31, 90)
+smalldf = filter(smalldf, start_date == "2022-02-19")
+
+pred_sub = filter(preds, DOY == mydoy, Depth == 1)
+
+obs_sub = filter(obs_data, DOY == mydoy, Depth == 1)
+
+obs_sub$ensemble_no = 1
+pred_sub$ensemble_no = 1
+
+obs_sub = filter(obs_sub, start_date == "2022-02-19")
+pred_sub = filter(pred_sub, start_date == "2022-02-19")
+
+
+ggplot(smalldf, aes(x = Horizon, y = Temp_C_00UTC, col = "GLM", group = ensemble_no)) +
+  geom_line(alpha = .7) +
+  
+  geom_line(data=pred_sub, aes(x = Horizon, y = Mean, col = "GPGLM"), linewidth = 1.1) +
+  geom_line(data=pred_sub, aes(x = Horizon, y = HetLower), linetype = "dashed", linewidth = 1.1, col = "#D55E00") +
+  geom_line(data=pred_sub, aes(x = Horizon, y = HetUpper), linetype = "dashed", linewidth = 1.1, col = "#D55E00") +
+  #facet_wrap(~factor(start_date)) + 
+  ylab("Temp (°C)") +
+  xlab("Horizon (days)") +
+  geom_point(data=obs_sub, aes(x = Horizon, y = temp_obs, col = "Observations" ))+
+
+  theme_bw() +
+  scale_color_manual(breaks = c("GPGLM", "Observations", "GLM"), 
+                     values = c(GPGLM = "#D55E00",
+                                Observations = "#503A9B",
+                                GLM = "darkgray"),
+                     labels = c("GLM surrogate", "Observations", "GLM"),  
+                     guide = guide_legend(override.aes = list(
+                       linetype = c("solid", "blank", "solid"),
+                       shape = c(NA, 16, NA))),
+                     name="") +
+  theme(legend.position = c(0.13, 0.90), legend.text=element_text(size=18),
+        legend.background=element_rect(fill = alpha("white", 0.1)),
+        axis.text=element_text(size=18),
+        axis.title=element_text(size=18))
+ggsave("Fit2NOAA-GLM.png", width = 3000, height= 2000, units = "px")
+#######################################################################################
+# 3D plots
+#######################################################################################
+preds = readRDS("../Data/SURROGATES/preds_all_training.Rds")
+obs_data = read.csv("../Data/SURROGATES/Bias_dataset_validation.csv")
+
+mydoy=50
+
+pred_sub = filter(preds, DOY == mydoy)
+
+obs_sub = filter(obs_data, DOY == mydoy)
+
+obs_sub = filter(obs_sub, start_date == "2022-02-19")
+pred_sub = filter(pred_sub, start_date == "2022-02-19")
+head(pred_sub)
+
+df2 = pred_sub
+preds=df2$Mean
+predsVar = df2$Var_SK
+
+depth = rep(0:9, each = 30)
+mydepths = 0:9
+
+df_mean =data.frame(dummy=rep(0,30))
+for (i in 1:length(mydepths)){
+  idx = which(depth == mydepths[i])
+  temps = preds[idx]
+  df_mean=cbind(df_mean, temps)
+}
+
+df_mean$dummy=NULL
+colnames(df_mean) = paste("d", seq(0:9), sep = "")
+
+depth = rep(0:9, each = 30)
+mydepths = 0:9
+
+df_var =data.frame(dummy=rep(0,30))
+for (i in 1:length(mydepths)){
+  idx = which(depth == mydepths[i])
+  temps = predsVar[idx]
+  df_var=cbind(df_var, temps)
+}
+
+df_var$dummy=NULL
+colnames(df_var) = paste("d", seq(0:9), sep = "")
+
+
+library(viridis)
+library(rgl)
+
+map2color<-function(x,pal,limits=NULL){
+  if(is.null(limits)) limits=range(x)
+  pal[findInterval(x,seq(limits[1],limits[2],length.out=length(pal)+1), all.inside=TRUE)]
+}
+
+max(df_var)
+meancol= map2color(as.matrix(df_mean), viridis(100))
+varcol= map2color(as.matrix(df_var), viridis(100), limits = c(0.001, 5))
+
+par3d(cex=2.0)
+persp3d(x = 1:30, y = 0:9, as.matrix(df_mean), color = meancol, xlab = "Horizon", ylab = "Depth", 
+        zlab = "Mean (C)", alpha=0.95)
+rgl.snapshot('3dplotMean.png', fmt = 'png')
+
+par3d(cex=2.0)
+persp3d(x = 1:30, y = 0:9, as.matrix(df_var), color = varcol, xlab = "Horizon", ylab = "Depth", 
+        zlab = "Var (C)", alpha=0.95)
+rgl.snapshot('3dplotVar.png', fmt = 'png')
+
+
+head(df)
+df2 = filter(df, Temp_covar == 25.63134)
+x = df2$Depth
+y = df2$Horizon
+z = df2$BC_mean
+z2 = df2$SD_SK
+
+range(preds)
+preds=df2$Mean
+mysd = df2$SD_SK
+
+depth = rep(0:9, each = 30)
+mydepths = 0:9
+
+df=data.frame(dummy=rep(0,30))
+for (i in 1:length(mydepths)){
+  idx = which(depth == mydepths[i])
+  temps = preds[idx]
+  df=cbind(df, temps)
+}
+head(df)
+df$dummy=NULL
+colnames(df) = paste("d", seq(0:9), sep = "")

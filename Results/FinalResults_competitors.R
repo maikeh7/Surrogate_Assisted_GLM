@@ -203,7 +203,9 @@ pred_sub$ensemble_no = 1
 bias_sub$ensemble_no = 1
 bias_sub2$ensemble_no = 1
 
-
+###################################################################################################
+### version WITH OGP
+###################################################################################################
 plotgpglm =  ggplot(smalldf, aes(x = Horizon, y = Temp_C_00UTC, col = "GLM", group = ensemble_no)) +
   geom_line(alpha = 0.7) +
   
@@ -262,6 +264,59 @@ plotgpbc = ggplot(smalldf, aes(x = Horizon, y = Temp_C_00UTC, group = ensemble_n
   #                      shape = c(NA, NA, 16, 16))),
   #                    name = "") +
   theme(legend.position = c(0.19, 0.99), legend.text=element_text(size=18),
+        legend.background=element_rect(fill = alpha("white", 0.1))) 
+#facet_wrap(~factor(start_date))
+#
+ggarrange(plotgpglm, plotgpbc, common.legend = FALSE)
+#ggsave("BCnoBCTestperiodExample2.png")
+
+###################################################################################################
+### version WITH NO OGP
+###################################################################################################
+plotgpglm =  ggplot(smalldf, aes(x = Horizon, y = Temp_C_00UTC, col = "GLM", group = ensemble_no)) +
+  geom_line(alpha = 0.7) +
+  
+  geom_line(data=pred_sub, aes(x = Horizon, y = Mean, col = "GPGLM"), linewidth = 1.1) +
+  geom_line(data=pred_sub, aes(x = Horizon, y = HetLower), linetype = "dashed", linewidth = 1.1, col = "#D55E00") +
+  geom_line(data=pred_sub, aes(x = Horizon, y = HetUpper), linetype = "dashed", linewidth = 1.1, col = "#D55E00") +
+  #facet_wrap(~factor(start_date)) + 
+  ylab("Temp (°C)") +
+  xlab("Horizon (days)") +
+  geom_point(data=obs_sub, aes(x = Horizon, y = temp_obs, col = "Observations" ))+
+  ylim(c(1,13)) + 
+  theme_bw() +
+  scale_color_manual(breaks = c("GPGLM", "Observations", "GLM"), 
+                     values = c(GPGLM = "#D55E00", Observations = "#503A9B",
+                                GLM = "darkgray"),
+                     labels = c("GPGLM", "Observations", "GLM"),  
+                     guide = guide_legend(override.aes = list(
+                       linetype = c("solid", "blank", "solid"),
+                       shape = c(NA, 16, NA))),
+                     name="") +
+  theme(legend.position = c(0.3, 0.92), legend.text=element_text(size=18),
+        legend.background=element_rect(fill = alpha("white", 0.1))) +
+  labs(tag = "A") 
+
+plotgpbc = ggplot(smalldf, aes(x = Horizon, y = Temp_C_00UTC, group = ensemble_no)) +
+  geom_line(alpha = 0.7, col = "darkgray") +
+  
+  geom_line(data=pred_sub, aes(x = Horizon, y = BC_mean, col = "GPBC"), linewidth = 1.1) +
+  geom_line(data=pred_sub, aes(x = Horizon, y = BCLower), linetype = "dashed", linewidth = 1.1, col = "#E66100") +
+  geom_line(data=pred_sub, aes(x = Horizon, y = BCUpper), linetype = "dashed", linewidth = 1.1, col = "#E66100") +
+  
+  ylab("Temp (°C)") +
+  xlab("Horizon (days)")+
+  geom_point(data=obs_sub, aes(x = Horizon, y = temp_obs), col ="#503A9B") +
+  
+  theme_bw() +
+  
+  scale_color_manual(breaks = c("GPBC"), 
+                     values = c(GPBC = "#E66100"),
+                     labels = c("GPBC"),
+                     name = "") +
+  labs(tag = "B") +
+  ylim(c(1,13)) + 
+  theme(legend.position = c(0.19, 0.95), legend.text=element_text(size=18),
         legend.background=element_rect(fill = alpha("white", 0.1))) 
 #facet_wrap(~factor(start_date))
 #
