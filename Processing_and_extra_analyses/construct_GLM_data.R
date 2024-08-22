@@ -20,7 +20,7 @@ tail(obs)
 # construct GLM data
 ###################################################
 biglist = list(length=30)
-horizon_dir = "HORIZON_TRAIN"
+horizon_dir = "../Data/HORIZON_TRAIN"
 method = "Average"
 lookback = 4
 obs_depth = 1
