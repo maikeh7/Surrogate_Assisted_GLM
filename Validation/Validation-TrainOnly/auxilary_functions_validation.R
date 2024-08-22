@@ -12,22 +12,10 @@ read_obs_data = function(obs_dir){
   return(obs_data)
 }
 
-# function to read in preds from GLM surrogates
-# model_type is one of "GLM", "GLM_byDepth", or "PERSISTENCE"
-read_surrogate_preds= function(surrogate_dir, model_type){
-  if (model_type == "GLM"){
+# function to read in preds from GLM surrogate
+read_surrogate_preds= function(surrogate_dir){
     surrogate_preds = readRDS(file.path(surrogate_dir,"GLM_Surrogate_SK.Rds"))
-    return(surrogate_preds)
-  }
-  if (model_type == "GLM_byDepth"){
-    surrogate_preds = readRDS(file.path(surrogate_dir,"GLM_Surrogate_SK.Rds"))
-    return(surrogate_preds)
-  }
-  if (model_type == "PERSISTENCE"){
-    surrogate_preds = readRDS(file.path(surrogate_dir,"PersistenceDF.Rds"))
-    return(surrogate_preds)
-  }
-  
+    return(surrogate_preds) 
 }
 
 # function to make MONTH/DAY/DOY dataframe for merging w/ other datasets
@@ -45,8 +33,7 @@ make_ymd = function(){
 get_obs_temp = function(actual_start, obs_depth=1, obs_df){
   df1 = filter(obs_df, date == actual_start)
   while(nrow(df1) == 0){
-    #print("bad")
-    
+   
     actual_start = actual_start - lubridate::days(1)
     
     df1 = dplyr::filter(obs_df, date == actual_start)
@@ -109,6 +96,6 @@ update_observed_data = function(){
   colnames(lake_temps)[2] = "depth_int"
   colnames(lake_temps)[3] = "temp_obs"
   lake_temps = lake_temps[ , c("YEAR", "MONTH", "DAY", "depth_int", "temp_obs", "DOY" , "datetime")]
-  write.csv(lake_temps, "../Data/Observed_data.csv")
-  #write.csv(lake_temps, "C:/Users/Maike/Box Sync/DEEP_LEARNING/SurrogateModeling/Data/Observed_data.csv")
+  write.csv(lake_temps, "home/maike/GP_surrogate_code/DATA/Bias_dataset/Observed_data.csv")
+  write.csv(lake_temps, "C:/Users/Maike/Box Sync/DEEP_LEARNING/SurrogateModeling/Data/Observed_data.csv")
 }

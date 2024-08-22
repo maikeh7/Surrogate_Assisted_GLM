@@ -1,32 +1,16 @@
-# Here I construct an observed dataset for each horizon, 
-# then merge w/ GLM surrogate and calculate bias
-
-#' construct a bias dataset based on observed data and GLM surrogate training data
-#'
-#' @param train_dates character vector of reference dates in the training period formatted as YYYY-MM-DD
-#' @param obs_depth 1
-#' @param method should be set to "Average"
-#' @param lookback 4
-#' @param surrogate_dir  
-#' @param train_end_date 
-#' @param obs_data 
-#' @param model_type 
-#'
-#' @return
-#' @export
-#'
-#' @examples
+# Here I construct an observed dataset for each horizon, then merge w/ GLM surrogate and calculate bias
+# also I added code so the temperature input is added
+# see below for how to get observed data 
 make_bias_horizon_datasets = function(train_dates, 
                                       obs_depth=1, 
                                       method="Average", 
                                       lookback = 4,
                                       surrogate_dir = "SURROGATES", 
                                       train_end_date, 
-                                      obs_data,
-                                      model_type){
-  mymodel = model_type
+                                      obs_data){
   # read in GLM surrogate--we need this to calculate bias
-  surrogate_preds = read_surrogate_preds(surrogate_dir, model_type = mymodel)
+  surrogate_preds = read_surrogate_preds(surrogate_dir)
+  #print(str(surrogate_preds))
   
   # filter data so observed data only includes up until 2022-12-31 (earlier dates like 2018 won't
   # matter b/c they are filtered out later, but I don't want dates the surrogate was NOT trained on to 
@@ -91,7 +75,7 @@ make_bias_horizon_datasets = function(train_dates,
   obs_DF = as.data.frame(obs_DF)
   obs_DF$start_date = as.character(obs_DF$start_date)
   obs_DF$Temp_covar = NULL
-  head(obs_DF)
+
   # Now, merge w/ mean from surrogate
   newdf = right_join(surrogate_preds, obs_DF, by = c("Depth", "DOY", "Horizon", "start_date"))
   
@@ -104,21 +88,6 @@ make_bias_horizon_datasets = function(train_dates,
   
 }
 
-#' construct a bias dataset based on observed data and GLM surrogate training data, updating to include a new reference date
-#'
-#' @param train_dates character vector of reference dates in the training period formatted as YYYY-MM-DD
-#' @param obs_depth 1
-#' @param method should be set to "Average"
-#' @param lookback 4
-#' @param surrogate_dir  
-#' @param train_end_date 
-#' @param obs_data 
-#' @param model_type 
-#'
-#' @return
-#' @export
-#'
-#' @examples
 
 make_bias_horizon_datasets_validation = function(train_dates, 
                                                  new_date,
@@ -127,10 +96,9 @@ make_bias_horizon_datasets_validation = function(train_dates,
                                                  lookback = 4,
                                                  surrogate_dir, 
                                                  glm_path,
-                                                 obs_data,
-                                                 model_type){
-  mymodel = model_type
-  surrogate_preds = read_surrogate_preds(surrogate_dir, model_type = mymodel)
+                                                 obs_data){
+
+  surrogate_preds = read_surrogate_preds(surrogate_dir)
   
   # filter data so observed data only includes up until new_date (earlier dates like 2018 won't
   # matter b/c they are filtered out later, but I don't want dates the surrogate was NOT trained on to 
@@ -209,17 +177,6 @@ make_bias_horizon_datasets_validation = function(train_dates,
   
 }
 
-#' Make a data.frame for a new reference date and the value of phi
-#'
-#' @param new_date character, new reference date formatted as YYYY-MM-DD
-#' @param obs_depth 1
-#' @param lookback 4
-#' @param obs_data observed dataset read in from 'read_observed_data()'
-#'
-#' @return
-#' @export
-#'
-#' @examples
 make_obs_testing_data = function(new_date, obs_depth=1, lookback = 4, obs_data){
 
   start_date = as.Date(new_date) 
@@ -264,7 +221,7 @@ make_obs_testing_data = function(new_date, obs_depth=1, lookback = 4, obs_data){
 }
 
 
-# this is how I constructed observed data (which is now in update_observed_data() in auxilary_functions_validation.R.
+# this is how I constructed observed data
 # this is the observed data NOTE THAT IT IS 00UTC--NOT AVERAGED!!
 #ymd = make_ymd()
 #lake_temps <- data.table::fread("https://s3.flare-forecast.org/targets/fcre_v2/fcre/fcre-targets-insitu.csv")
