@@ -1,3 +1,6 @@
+library(dplyr)
+library(data.table)
+
 read_obs_data = function(){
   #obs_data = read.csv("C:/Users/Maike/Box Sync/DEEP_LEARNING/SurrogateModeling/Data/Observed_data.csv")
   obs_data = read.csv("../Data/Observed_data.csv")
