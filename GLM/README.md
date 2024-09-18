@@ -1,2 +1,2 @@
 ## Generating GLM forecasts
-Reference dates for forecasts can be adjusted within main_functions.R. Note that generating forecasts for many reference dates in one run take take up to a few days. 
+Reference dates for forecasts for reference dates of interest is done with main_functions.R. Note that generating forecasts for many reference dates in one run take take up to a few days. All code involving GLM was run on a Linux machine. Instructions for installing the GLM R package (GLM3R) may be found here: https://github.com/GLEON/GLM3r (follow instructions for Linux). 
