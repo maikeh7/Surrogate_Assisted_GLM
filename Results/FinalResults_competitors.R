@@ -7,7 +7,7 @@ library(ggpubr)
 # Make figures 7 and 8
 
 # Results (raw) from GPBC
-results_folder = "../Data/RESULTS2.28.2024"
+#results_folder = "../Data/RESULTS2.28.2024"
 results_folder = "../Data/RESULTS4.30.2024"
 results = list.files(results_folder)[grep("preds\\d{4}-\\d{2}-\\d{2}", list.files(results_folder))]
 
@@ -316,7 +316,8 @@ ggplot(d2, aes(x = factor(MONTH), y = GPBC, col = "GPBC", group=1))+
                        linetype = c("solid", "dotted", "solid", "solid"))),
                      name="")
 ggsave("tempPlotMONTH.pdf")
-unique(res2$DOY)
+
+res2 = right_join(allRes, ymd, by = "DOY")
 res2$bias = res2$temp_obs - res2$Mean  
 res2$applied_bias = res2$BC_mean - res2$Mean
 glm2$bias = glm2$temp_obs - glm2$GLM_mean
@@ -327,7 +328,7 @@ dglm = glm2 %>% group_by(DOY) %>% summarise(meanBias = mean(bias, na.rm=TRUE))
 
 d2 = res2 %>% group_by(DOY) %>% summarise(meanBias = mean(bias, na.rm=TRUE))
 d2[d2$DOY == 60, ]$meanBias=1
-biasfit = readRDS("bias_surrogate.Rds")
+biasfit = readRDS("..DATA/GPBCPHI/SURROGATES/bias_surrogate.Rds")
 head(biasfit)
 temp = biasfit %>% group_by(DOY) %>% summarise(meanbias = mean(BiasMean))
 
@@ -351,18 +352,19 @@ ggplot(d2, aes(x = DOY, y = meanBias, col = "bias")) +
              color = "black", linewidth=1) +
   geom_vline(xintercept = 260, linetype="dotted", 
              color = "black", linewidth=1) +
-  geom_line(data = d3, aes(x = DOY, y = meanAppliedBias, col = "appliedbias"), linewidth = 1) +
+  geom_line(data = d3, aes(x = DOY, y = meanAppliedBias, col = "appliedbias"), linetype = "dotdash",
+            linewidth=1.3) +
   geom_line(data = dglm, aes(x = DOY, y = meanBias, col = "GLMbias"), linewidth = 1) +
   scale_color_manual(breaks = c("bias", "appliedbias", "GLMbias"), 
                      values = c(bias = "#CC79A7", appliedbias = "#009E73", GLMbias = "darkgray"),
                      labels = c("actual bias",  "predicted bias", "GLM bias"),
                      guide = guide_legend(override.aes = list(
-                       linetype = c("solid", "solid", "solid"))),
+                       linetype = c("solid", "dotdash", "solid"))),
                      name="") +
   ylab("Mean bias (°C)") +
-  theme(legend.position = c(0.8, 0.15), legend.text=element_text(size=18),text = element_text(size = 20),
+  theme(legend.position = c(0.85, 0.15), legend.text=element_text(size=18),text = element_text(size = 20),
         legend.background=element_rect(fill = alpha("white", 0.1)))
-  ggsave("BiasPlot.pdf")
+  ggsave("BiasPlotnew.pdf")
   ggsave("BiasPlot.png")
 
 
