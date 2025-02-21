@@ -123,8 +123,13 @@ plot3=ggplot(smalldf3, aes(x = Horizon, y = Temp_C_00UTC, col = "GLM", group = e
                        shape = c(NA, NA, 16))),
                      name="") +
   ggtitle("Not bias-corrected") +
-  theme(legend.position = c(0.20, 0.9), legend.text=element_text(size=14),text = element_text(size = 14),
-        legend.background=element_rect(fill = alpha("white", 0.1)))
+  theme(legend.position = c(0.20, 0.9), 
+        legend.text=element_text(size=14),
+        text = element_text(size = 14),
+        legend.background=element_rect(fill = alpha("white", 0.1)),
+        axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())
 
 
 
@@ -151,8 +156,14 @@ plot4=ggplot(smalldf3, aes(x = Horizon, y = Temp_C_00UTC, col = "GLM", group = e
                        shape = c(NA, NA, 16))),
                      name="") +
   ggtitle("Not bias-corrected") +
-  theme(legend.position = c(0.20, 0.92), legend.text=element_text(size=14),text = element_text(size = 14),
-        legend.background=element_rect(fill = alpha("white", 0.1)))
+  theme(legend.position = c(0.20, 0.92), 
+        legend.text=element_text(size=14),
+        text = element_text(size = 14),
+        legend.background=element_rect(fill = alpha("white", 0.1)),
+        axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())
+
 ggarrange(plot1, plot2, nrow = 2, ncol=1)
 ggarrange(plot3, plot4, plot1, plot2, nrow=2, ncol=2)
 ggsave("PhivsNophi.pdf", width = 3000, height= 3000, units = "px")
