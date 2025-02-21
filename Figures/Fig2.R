@@ -3,7 +3,9 @@ library(data.table)
 library(ggplot2)
 library(dplyr)
 library(ggpubr)
+library(viridis)
 
+mycols = viridis(31)
 biglist = list(length=30)
 horizon_dir = "../Data/HORIZON_TRAIN"
 method = "Average"
@@ -56,7 +58,10 @@ p2=ggplot(smalldf, aes(x = Horizon, y = Temp_C_00UTC, col = factor(ensemble_no))
   ylim(c(0,15)) + 
   theme(axis.text = element_text(size = 14),
         axis.title = element_text(size = 14),
-        strip.text.x = element_text(size = 14)) +
+        strip.text.x = element_text(size = 14),
+        axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank()) +
   facet_wrap(~Depth, nrow=2, ncol=5, labeller = d_names) 
 
 
